@@ -1,45 +1,12 @@
 package com.github.paulpv.androidbletool
 
-import android.Manifest
-import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.Context
-import android.content.pm.PackageManager
-import android.os.Build
 import android.util.Log
 import androidx.annotation.StringRes
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import com.google.android.material.snackbar.Snackbar
 import com.polidea.rxandroidble2.exceptions.BleScanException
 import java.util.*
 import java.util.concurrent.TimeUnit
-
-private const val REQUEST_PERMISSION_COARSE_LOCATION = 101
-
-@SuppressLint("ObsoleteSdkInt")
-internal fun Context.isLocationPermissionGranted(): Boolean = when {
-    Build.VERSION.SDK_INT < Build.VERSION_CODES.M -> true
-    else ->
-        ContextCompat.checkSelfPermission(
-            this,
-            Manifest.permission.ACCESS_COARSE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-}
-
-internal fun Activity.requestLocationPermission() =
-    ActivityCompat.requestPermissions(
-        this,
-        arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION),
-        REQUEST_PERMISSION_COARSE_LOCATION
-    )
-
-internal fun isLocationPermissionGranted(requestCode: Int, grantResults: IntArray) =
-    requestCode == REQUEST_PERMISSION_COARSE_LOCATION && grantResults[0] == PackageManager.PERMISSION_GRANTED
-
-//
-//
-//
 
 internal fun Activity.showSnackbarShort(text: CharSequence) {
     Snackbar.make(findViewById(android.R.id.content), text, Snackbar.LENGTH_SHORT).show()
