@@ -3,6 +3,13 @@
     <string name="button_start_scan">Start Scan</string>
     <string name="button_stop_scan">Stop Scan</string>
 
+    <!-- BleTool -->
+    <string name="scanning">Scanning…</string>
+    <string name="waiting_for_bluetooth">Waiting for Bluetooth…</string>
+    <string name="notification_left_behind_channel_description">Channel for notifying if device is lost</string>
+    <string name="notification_left_behind_text">Device left behind</string>
+    <string name="notification_scanning_channel_description">Channel for scanning foreground notification</string>
+
     <!-- Ble scan error messages -->
     <string name="error_bluetooth_not_available">Bluetooth is not available</string>
     <string name="error_bluetooth_disabled">Enable bluetooth and try again</string>
