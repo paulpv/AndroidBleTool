@@ -9,7 +9,6 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.edit
 import com.livinglifetechway.quickpermissions_kotlin.runWithPermissions
 import com.polidea.rxandroidble2.LogConstants
 import com.polidea.rxandroidble2.LogOptions
@@ -166,9 +165,7 @@ class BleTool(private var applicationContext: Context, looper: Looper = Looper.g
             return sharedPreferences!!.getLong("scanningStartedMillis", -1)
         }
         private set(value) {
-            sharedPreferences!!.edit(commit = true, action = {
-                putLong("scanningStartedMillis", value)
-            })
+            sharedPreferences!!.edit().putLong("scanningStartedMillis", value).apply()
         }
 
     val scanningElapsedMillis: Long
@@ -479,13 +476,12 @@ class BleTool(private var applicationContext: Context, looper: Looper = Looper.g
             return value
         }
         set(value) {
-            sharedPreferences!!.edit(commit = true, action = {
-                //Log.e(TAG, "#PID set backgroundScannerStartedPid=$value")
-                putInt("backgroundScannerStartedPid", value)
-            })
+            //Log.e(TAG, "#PID set backgroundScannerStartedPid=$value")
+            sharedPreferences!!.edit().putInt("backgroundScannerStartedPid", value).apply()
         }
 
     fun onScanResultReceived(context: Context, intent: Intent) {
+
         val backgroundScannerStartedPid = backgroundScannerStartedPid
         if (backgroundScannerStartedPid == -1) {
             if (false && BuildConfig.DEBUG) {
