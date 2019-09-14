@@ -2,12 +2,15 @@ package com.github.paulpv.androidbletool
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.BluetoothLeAdvertiser
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
+import java.util.*
 
 class BluetoothUtils {
     companion object {
@@ -81,6 +84,75 @@ class BluetoothUtils {
                 Log.w(TAG, "isBluetoothAdapterEnabled: mBluetoothAdapter.isEnabled()", e)
                 false
             }
+        }
+
+        fun gattDeviceAddressToLong(gatt: BluetoothGatt): Long {
+            return bluetoothDeviceAddressToLong(gatt.device)
+        }
+
+        fun bluetoothDeviceAddressToLong(device: BluetoothDevice): Long {
+            return macAddressStringToLong(device.address)
+        }
+
+        fun gattDeviceAddressToPrettyString(gatt: BluetoothGatt): String {
+            return bluetoothDeviceAddressToPrettyString(gatt.device)
+        }
+
+        fun bluetoothDeviceAddressToPrettyString(device: BluetoothDevice): String {
+            return macAddressStringToPrettyString(device.address)
+        }
+
+        fun getShortDeviceAddressString(deviceAddress: String?): String? {
+            @Suppress("NAME_SHADOWING") var deviceAddress = deviceAddress
+            if (deviceAddress != null) {
+                deviceAddress = macAddressStringToStrippedLowerCaseString(deviceAddress)
+                val start = Math.max(deviceAddress.length - 4, 0)
+                deviceAddress = deviceAddress.substring(start, deviceAddress.length)
+                deviceAddress = deviceAddress.toUpperCase()
+            }
+            if (Utils.isNullOrEmpty(deviceAddress)) {
+                deviceAddress = "null"
+            }
+            return deviceAddress
+        }
+
+        fun getShortDeviceAddressString(deviceAddress: Long): String? {
+            return getShortDeviceAddressString(macAddressLongToString(deviceAddress))
+        }
+
+        fun macAddressStringToStrippedLowerCaseString(macAddress: String): String {
+            return macAddress.replace(":", "").toLowerCase()
+        }
+
+        fun macAddressStringToLong(macAddress: String): Long {
+            /*
+            if (macAddress == null || macAddress.length() != 17)
+            {
+                throw new IllegalArgumentException("macAddress (" + PbString.quote(macAddress) +
+                                                   ") must be of format \"%02X:%02X:%02X:%02X:%02X:%02X\"");
+            }
+            */
+            return java.lang.Long.parseLong(macAddressStringToStrippedLowerCaseString(macAddress), 16)
+        }
+
+        fun macAddressStringToPrettyString(macAddress: String): String {
+            return macAddressLongToPrettyString(macAddressStringToLong(macAddress))
+        }
+
+        fun macAddressLongToPrettyString(macAddress: Long): String {
+            return String.format(
+                Locale.US, "%02X:%02X:%02X:%02X:%02X:%02X",
+                (macAddress shr 40 and 0xff).toByte(),
+                (macAddress shr 32 and 0xff).toByte(),
+                (macAddress shr 24 and 0xff).toByte(),
+                (macAddress shr 16 and 0xff).toByte(),
+                (macAddress shr 8 and 0xff).toByte(),
+                (macAddress shr 0 and 0xff).toByte()
+            )
+        }
+
+        fun macAddressLongToString(macAddressLong: Long): String {
+            return String.format(Locale.US, "%012x", macAddressLong)
         }
     }
 }

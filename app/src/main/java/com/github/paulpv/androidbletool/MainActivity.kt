@@ -3,7 +3,6 @@ package com.github.paulpv.androidbletool
 import android.os.Bundle
 import android.util.Log
 import com.polidea.rxandroidble2.exceptions.BleScanException
-import com.polidea.rxandroidble2.scan.ScanResult
 import io.reactivex.disposables.Disposable
 import kotlinx.android.synthetic.main.activity_main.*
 
@@ -19,8 +18,18 @@ class MainActivity : BleTool.BleToolObserverActivity() {
         super.onCreate(savedInstanceState)
         bleTool = (applicationContext as BleTool.BleToolApp).bleTool
         setContentView(R.layout.activity_main)
-        scan_start_btn.setOnClickListener { bleTool.scanAttach(this) }
-        scan_stop_btn.setOnClickListener { bleTool.scanDetach(this) }
+        scan_start_btn.setOnClickListener { bleTool.scan(true, this, true) }
+        scan_stop_btn.setOnClickListener { bleTool.scan(false, this, true) }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        bleTool.attach(this)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        bleTool.detach(this)
     }
 
     override fun onComplete() {
@@ -31,8 +40,8 @@ class MainActivity : BleTool.BleToolObserverActivity() {
         Log.e(TAG, "onSubscribe: d=$d")
     }
 
-    override fun onNext(scanResult: ScanResult) {
-        Log.e(TAG, "onNext: scanResult=$scanResult")
+    override fun onNext(r: BleTool.BleScanResult) {
+        Log.e(TAG, "onNext: scanningElapsedMillis=${r.bleTool.scanningElapsedMillis} scanResult=${r.scanResult}")
     }
 
     override fun onError(e: Throwable) {

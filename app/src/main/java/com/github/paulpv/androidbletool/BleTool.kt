@@ -3,12 +3,13 @@ package com.github.paulpv.androidbletool
 import android.Manifest
 import android.app.*
 import android.content.*
-import android.os.Build
-import android.os.IBinder
+import android.os.*
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.edit
 import com.livinglifetechway.quickpermissions_kotlin.runWithPermissions
 import com.polidea.rxandroidble2.LogConstants
 import com.polidea.rxandroidble2.LogOptions
@@ -27,7 +28,37 @@ import kotlin.system.exitProcess
  * To call from Java:
  * https://kotlinlang.org/docs/reference/java-to-kotlin-interop.html
  */
-class BleTool(private var applicationContext: Context) {
+class BleTool(private var applicationContext: Context, looper: Looper = Looper.getMainLooper()) {
+
+    class BleToolApp : Application() {
+        companion object {
+            private const val TAG = "BleToolApp"
+        }
+
+        lateinit var bleTool: BleTool
+            private set
+
+        override fun onCreate() {
+            Log.i(TAG, "onCreate()")
+            super.onCreate()
+            bleTool = BleTool(this)
+        }
+
+        override fun onTerminate() {
+            Log.i(TAG, "onTerminate()")
+            super.onTerminate()
+        }
+    }
+
+    class BleScanResult(val bleTool: BleTool, val scanResult: ScanResult)
+
+    interface BleToolObserver : Observer<BleScanResult>
+
+    abstract class BleToolObserverActivity : BleToolObserver, AppCompatActivity()
+
+    //
+    //
+    //
 
     companion object {
         private const val TAG = "BleTool"
@@ -39,52 +70,122 @@ class BleTool(private var applicationContext: Context) {
         private const val SCANNING_NOTIFICATION_ID = 1
         private const val SCANNING_CHANNEL_ID = "SCANNING_CHANNEL_ID"
         private const val SCANNING_CHANNEL_NAME = "SCANNING_CHANNEL_NAME"
+
+        private val MY_PID = android.os.Process.myPid()
     }
 
-    class BleToolApp : Application() {
-        lateinit var bleTool: BleTool
-            private set
-
-        override fun onCreate() {
-            super.onCreate()
-            bleTool = BleTool(this)
-        }
-    }
-
-    class BleScanReceiver : BroadcastReceiver() {
+    class BleDeviceScanReceiver : BroadcastReceiver() {
         companion object {
-            fun newPendingIntent(context: Context, requestCode: Int): PendingIntent =
-                Intent(context, BleScanReceiver::class.java).let {
-                    PendingIntent.getBroadcast(context, requestCode, it, 0)
-                }
+            private const val ACTION = "com.github.paulpv.androidbletool.BleTool.BleDeviceScanReceiver.ACTION"
+
+            fun newPendingIntent(context: Context, requestCode: Int): PendingIntent {
+                val intent = Intent(context, BleDeviceScanReceiver::class.java)
+                intent.action = ACTION
+                return PendingIntent.getBroadcast(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+            }
         }
 
         override fun onReceive(context: Context, intent: Intent) {
-            (context.applicationContext as BleToolApp?)?.bleTool!!.onScanResultReceived(intent)
+            when (intent.action) {
+                ACTION -> {
+                    (context.applicationContext as BleToolApp?)?.bleTool!!.onScanResultReceived(context, intent)
+                }
+            }
         }
     }
 
-    interface BleToolObserver : Observer<ScanResult>
+    /**
+     * Requires android.permission.RECEIVE_BOOT_COMPLETED
+     * <p>
+     * Test on emulator:
+     * 1) adb kill-server
+     * 2) adb root
+     * 3) adb shell am broadcast -a android.intent.action.BOOT_COMPLETED -n com.github.paulpv.androidbletool/com.github.paulpv.androidbletool.BleTool.BootCompletedReceiver
+     */
+    class BootCompletedReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_LOCKED_BOOT_COMPLETED -> {
+                    (context.applicationContext as BleToolApp?)?.bleTool!!.onBootCompletedReceived(context, intent)
+                }
+            }
+        }
+    }
 
-    abstract class BleToolObserverActivity : BleToolObserver, AppCompatActivity()
+    class NotificationService : Service() {
+        override fun onBind(intent: Intent?): IBinder {
+            return NotificationBinder()
+        }
+
+        inner class NotificationBinder : Binder() {
+            fun getServiceInstance(): NotificationService = this@NotificationService
+        }
+    }
+
+    private val PREFS_FILENAME = "com.github.paulpv.androidbletool.BleTool.prefs"
+    private val sharedPreferences = applicationContext.getSharedPreferences(PREFS_FILENAME, 0)
 
     private var notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     private var foregroundService: NotificationService? = null
     private lateinit var foregroundNotification: Notification
     private val serviceConnection: ServiceConnection
 
+    private var bluetoothAdapter = BluetoothUtils.getBluetoothAdapter(applicationContext)
+
     private val rxBleClient: RxBleClient = RxBleClient.create(applicationContext)
-    private val callbackIntent = BleScanReceiver.newPendingIntent(applicationContext, SCAN_REQUEST_CODE)
+    private val callbackIntent = BleDeviceScanReceiver.newPendingIntent(applicationContext, SCAN_REQUEST_CODE)
 
     private var scanResultObservers: MutableSet<BleToolObserver> = mutableSetOf()
 
     private var nonBackgroundScanDisposable: Disposable? = null
     private var rxBleClientStateChangeObservable: Observable<RxBleClient.State>? = null
 
-    private var bluetoothAdapter = BluetoothUtils.getBluetoothAdapter(applicationContext)
+    private val RECENT_DEVICE_TIMEOUT_MILLIS = 30 * 1000
+    private val recentlyNearbyDevices: ExpiringIterableLongSparseArray<ScanResult> =
+        ExpiringIterableLongSparseArray("recentlyNearbyDevices", RECENT_DEVICE_TIMEOUT_MILLIS, looper)
+    private val recentlyNearbyDevicesListener = object : ExpiringIterableLongSparseArray.ExpiringIterableLongSparseArrayListener<ScanResult> {
+        override fun onItemAdded(key: Long, index: Int, value: ScanResult) {
+            //Log.i(TAG, "onItemAdded: key=$key, index=$index, value=$value")
+            onDeviceAdded(value)
+        }
 
-    var isScanning = false
-        private set
+        override fun onItemExpiring(key: Long, index: Int, value: ScanResult, elapsedMillis: Long): Boolean {
+            //Log.w(TAG, "onItemExpiring: key=$key, index=$index, value=$value, elapsedMillis=$elapsedMillis")
+            return onDeviceExpiring(value)
+        }
+
+        override fun onItemRemoved(key: Long, index: Int, value: ScanResult, elapsedMillis: Long, expired: Boolean) {
+            //Log.i(TAG, "onItemRemoved: key=$key, index=$index, value=$value, elapsedMillis=$elapsedMillis, expired=$expired")
+            onDeviceRemoved(value)
+        }
+    }
+
+    @Suppress("MemberVisibilityCanBePrivate")
+    var scanningStartedMillis: Long
+        get() {
+            return sharedPreferences!!.getLong("scanningStartedMillis", -1)
+        }
+        private set(value) {
+            sharedPreferences!!.edit(commit = true, action = {
+                putLong("scanningStartedMillis", value)
+            })
+        }
+
+    val scanningElapsedMillis: Long
+        get() {
+            val scanningStartedMillis = this.scanningStartedMillis
+            return if (scanningStartedMillis != -1L) {
+                SystemClock.uptimeMillis() - scanningStartedMillis
+            } else {
+                -1L
+            }
+        }
+
+    @Suppress("MemberVisibilityCanBePrivate")
+    val isScanning: Boolean
+        get() {
+            return scanningStartedMillis != -1L
+        }
 
     private fun getString(resId: Int, vararg formatArgs: Any): String {
         return applicationContext.getString(resId, formatArgs)
@@ -111,6 +212,8 @@ class BleTool(private var applicationContext: Context) {
 
 
     init {
+        Log.i(TAG, "+init")
+
         @Suppress("SimplifyBooleanWithConstants")
         if (false && BuildConfig.DEBUG) {
             USE_SCAN_API_VERSION = 25 // For debugging purposes only
@@ -127,6 +230,8 @@ class BleTool(private var applicationContext: Context) {
                     .build()
             )
         }
+
+        recentlyNearbyDevices.addListener(recentlyNearbyDevicesListener)
 
         rxBleClientStateChangeObservable = rxBleClient.observeStateChanges()
             .startWith(rxBleClient.state)
@@ -163,26 +268,23 @@ class BleTool(private var applicationContext: Context) {
 
         serviceConnection = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, service: IBinder) {
-                foregroundService = (service as NotificationService.NotificationBinder).getServiceInstance()
-                @Suppress("ConstantConditionIf")
-                if (AUTO_START_SCANNING) {
-                    isScanning = scanInternal(true)
-                }
+                val notificationService = (service as NotificationService.NotificationBinder).getServiceInstance()
+                onNotificationServiceConnected(notificationService)
             }
 
             override fun onServiceDisconnected(name: ComponentName) {
-                foregroundService = null
-                showScanningNotification(show = false)
+                onNotificationServiceDisconnected()
             }
         }
 
         val service = Intent(applicationContext, NotificationService::class.java)
         applicationContext.bindService(service, serviceConnection, Context.BIND_AUTO_CREATE)
+
+        Log.i(TAG, "-init")
     }
 
     private fun shutdown(runThenKillProcess: (() -> Unit)? = null) {
         scanInternal(false)
-        isScanning = false
 
         //rxBleClientStateChangeObservable?.dispose()
         rxBleClientStateChangeObservable = null
@@ -195,11 +297,41 @@ class BleTool(private var applicationContext: Context) {
         }
     }
 
-    private fun updateScanningNotificationText(text: String) {
-        val notification = createNotification(applicationContext, SCANNING_CHANNEL_ID, text)
-        notificationManager.notify(SCANNING_NOTIFICATION_ID, notification)
+    private fun onNotificationServiceConnected(notificationService: NotificationService) {
+        Log.i(TAG, "onServiceConnected(...)")
+        foregroundService = notificationService
+        if (isScanning) {
+            scanInternal(true)
+        }
     }
 
+    private fun onNotificationServiceDisconnected() {
+        Log.i(TAG, "onServiceDisconnected(...)")
+        scanInternal(false)
+        foregroundService = null
+    }
+
+    //
+    //
+    //
+
+    private fun onBootCompletedReceived(context: Context, intent: Intent) {
+        Log.i(TAG, "#BOOT onBootCompletedReceived(context=$context, intent=$intent)")
+        Log.i(TAG, "#BOOT onBootCompletedReceived: isScanning=$isScanning")
+        // Scanning will be started in onNotificationServiceConnected if needed
+    }
+
+    private fun onAppReplacedReceived(context: Context, intent: Intent) {
+        Log.i(TAG, "#REPLACED onAppReplacedReceived(context=$context, intent=$intent)")
+        Log.i(TAG, "#REPLACED onAppReplacedReceived: isScanning=$isScanning")
+        // Scanning will be started in onNotificationServiceConnected if needed
+    }
+
+    //
+    //
+    //
+
+    @RequiresApi(26)
     private fun createNotificationChannel(
         notificationManager: NotificationManager,
         channelID: String,
@@ -221,66 +353,65 @@ class BleTool(private var applicationContext: Context) {
             .setChannelId(channelID)
             .build()
 
-    private fun getScanningNotificationText(bluetoothAdapterEnabled: Boolean): String {
-        val resId = if (bluetoothAdapterEnabled) R.string.scanning else R.string.waiting_for_bluetooth
+    private fun updateScanningNotificationText(text: String) {
+        val notification = createNotification(applicationContext, SCANNING_CHANNEL_ID, text)
+        notificationManager.notify(SCANNING_NOTIFICATION_ID, notification)
+    }
+
+    private fun getScanningNotificationText(): String {
+        val resId = if (isBluetoothEnabled) R.string.scanning else R.string.waiting_for_bluetooth
         return getString(resId)
     }
 
-    private fun showScanningNotification(
-        bluetoothAdapterEnabled: Boolean = isBluetoothEnabled,
-        show: Boolean
-    ) {
+    private fun showScanningNotification(show: Boolean) {
+        if (foregroundService == null) {
+            Log.w(TAG, "showScanningNotification: Unexpected foregroundService == null; ignoring")
+            return
+        }
         if (show) {
-            val text = getScanningNotificationText(bluetoothAdapterEnabled)
+            val text = getScanningNotificationText()
             foregroundNotification = createNotification(foregroundService!!, SCANNING_CHANNEL_ID, text)
             //
             // Prevent Android OS from suspending this app's process
             //
-            foregroundService?.startForeground(SCANNING_NOTIFICATION_ID, foregroundNotification)
+            foregroundService!!.startForeground(SCANNING_NOTIFICATION_ID, foregroundNotification)
         } else {
             notificationManager.cancel(SCANNING_NOTIFICATION_ID)
             //
             // Allow Android OS to suspend this app's process
             //
-            foregroundService?.stopForeground(true)
+            foregroundService!!.stopForeground(true)
         }
     }
 
-    /**
-     * Called by UI Contexts [Activity/Fragment] to start scanning
-     */
-    fun scanAttach(observerActivity: BleToolObserverActivity) {
-        if (scanResultObservers.contains(observerActivity)) {
-            return
-        }
+    //
+    //
+    //
+
+    fun attach(observer: BleToolObserver) {
+        scanResultObservers.add(observer)
+    }
+
+    fun detach(observer: BleToolObserver) {
+        scanResultObservers.remove(observer)
+    }
+
+    fun scan(on: Boolean, observerActivity: BleToolObserverActivity, force: Boolean = false) {
         observerActivity.runWithPermissions(Manifest.permission.ACCESS_COARSE_LOCATION) {
-            scanAttach(observerActivity as BleToolObserver)
+            scan(on, force)
         }
     }
 
-    /**
-     * Called by non-UI Contexts to start scanning
-     */
-    fun scanAttach(observer: BleToolObserver) {
-        if (scanResultObservers.add(observer) && scanResultObservers.size == 1) {
-            if (scanInternal(true)) {
-                isScanning = true
-            }
-        }
-    }
-
-    /**
-     * Called by either UI or non-UI Contexts to stop scanning
-     */
-    fun scanDetach(observer: BleToolObserver) {
-        if (scanResultObservers.remove(observer) && scanResultObservers.size == 0) {
-            if (scanInternal(false)) {
-                isScanning = false
-            }
+    fun scan(on: Boolean, force: Boolean = false) {
+        if (force || on != isScanning) {
+            scanInternal(on)
+        } else {
+            Log.w(TAG, "scan(on=$on); on == isScanning; ignoring")
         }
     }
 
     private fun scanInternal(on: Boolean): Boolean {
+        Log.i(TAG, "scanInternal(on=$on)")
         if (on) {
             try {
                 val scanSettings = ScanSettings.Builder()
@@ -294,21 +425,23 @@ class BleTool(private var applicationContext: Context) {
                     .build()
 
                 if (USE_SCAN_API_VERSION >= 26) {
-                    Log.e(TAG, "scanInternal: USE_API_VERSION >= 26; Start background scan")
+                    Log.i(TAG, "scanInternal: USE_API_VERSION >= 26; Start background scan")
                     rxBleClient.backgroundScanner.scanBleDeviceInBackground(
                         callbackIntent,
                         scanSettings,
                         scanFilter
                     )
+                    backgroundScannerStartedPid = MY_PID
                 } else {
-                    Log.e(TAG, "scanInternal: USE_API_VERSION < 26; Start non-background scan")
+                    Log.i(TAG, "scanInternal: USE_API_VERSION < 26; Start non-background scan")
                     nonBackgroundScanDisposable = rxBleClient.scanBleDevices(scanSettings, scanFilter)
                         .observeOn(AndroidSchedulers.mainThread())
                         //.doFinally { dispose() }
                         .subscribe({ processScanResult(it) }, { onScanError(it) })
                     //.let { scanDisposable = it }
-                    showScanningNotification(isBluetoothEnabled, true)
                 }
+                showScanningNotification(true)
+                scanningStartedMillis = SystemClock.uptimeMillis()
                 return true
             } catch (scanException: BleScanException) {
                 Log.e(TAG, "scanInternal: Failed to start scan", scanException)
@@ -317,27 +450,72 @@ class BleTool(private var applicationContext: Context) {
         } else {
             try {
                 if (USE_SCAN_API_VERSION >= 26) {
-                    Log.e(TAG, "scanInternal: USE_API_VERSION >= 26; Stopping background scan")
+                    Log.i(TAG, "scanInternal: USE_API_VERSION >= 26; Stopping background scan")
                     rxBleClient.backgroundScanner.stopBackgroundBleScan(callbackIntent)
+                    backgroundScannerStartedPid = -1
                 } else {
-                    Log.e(TAG, "scanInternal: USE_API_VERSION < 26; Stopping non-background scan")
+                    Log.i(TAG, "scanInternal: USE_API_VERSION < 26; Stopping non-background scan")
                     nonBackgroundScanDisposable?.dispose()
                     nonBackgroundScanDisposable = null
-                    showScanningNotification(show = false)
                 }
+                showScanningNotification(false)
+                recentlyNearbyDevices.pause()
+                scanningStartedMillis = -1L
                 return true
             } catch (scanException: BleScanException) {
                 Log.e(TAG, "scanInternal: Failed to stop scan", scanException)
                 onScanError(scanException)
             }
         }
+        scanningStartedMillis = -1L
         return false
     }
 
-    fun onScanResultReceived(intent: Intent) {
+    private var backgroundScannerStartedPid: Int
+        get() {
+            @Suppress("UnnecessaryVariable")
+            val value = sharedPreferences!!.getInt("backgroundScannerStartedPid", -1)
+            //Log.e(TAG, "#PID get backgroundScannerStartedPid=$value")
+            return value
+        }
+        set(value) {
+            sharedPreferences!!.edit(commit = true, action = {
+                //Log.e(TAG, "#PID set backgroundScannerStartedPid=$value")
+                putInt("backgroundScannerStartedPid", value)
+            })
+        }
+
+    fun onScanResultReceived(context: Context, intent: Intent) {
+        val backgroundScannerStartedPid = backgroundScannerStartedPid
+        if (backgroundScannerStartedPid == -1) {
+            if (false && BuildConfig.DEBUG) {
+                Log.w(
+                    TAG,
+                    "#PID onScanResultReceived: backgroundScannerStartedPid==-1; ignoring"
+                )
+            }
+            return
+        }
+
+        if (backgroundScannerStartedPid != MY_PID) {
+            if (true && BuildConfig.DEBUG) {
+                Log.w(
+                    TAG,
+                    "#PID onScanResultReceived: backgroundScannerStartedPid($backgroundScannerStartedPid) != android.os.Process.myPid()($MY_PID); Scan is orphaned/leaked and cannot be stopped! :("
+                )
+            }
+        } else {
+            if (false && BuildConfig.DEBUG) {
+                Log.i(
+                    TAG,
+                    "#PID onScanResultReceived: backgroundScannerStartedPid($backgroundScannerStartedPid) == android.os.Process.myPid()($MY_PID); Scan is **NOT** orphaned/leaked and can be stopped! :)"
+                )
+            }
+        }
+
         try {
             val scanResult = rxBleClient.backgroundScanner.onScanResultReceived(intent)
-            //Log.i(TAG, "Scan results received: $scanResults")
+            //Log.i(TAG, "onScanResultReceived: Scan results received: $scanResults")
             scanResult.forEach { processScanResult(it) }
         } catch (scanException: BleScanException) {
             Log.e(TAG, "Failed to scan devices", scanException)
@@ -353,8 +531,50 @@ class BleTool(private var applicationContext: Context) {
         //Log.i(TAG, "processScanResult: scanResult=$scanResult")
         // TODO:(pv) Save individual results in to expirable collection
         // TODO:(pv) Emit each add and remove (via timeout)
-        scanResultObservers.forEach { it.onNext(scanResult) }
+        val bleDevice = scanResult.bleDevice
+        val macAddressString = bleDevice.macAddress
+        val macAddressLong = BluetoothUtils.macAddressStringToLong(macAddressString)
+        val index = recentlyNearbyDevices.put(macAddressLong, scanResult)
+        if (index >= 0) {
+            onDeviceUpdated(scanResult)
+        }
     }
 
+    private fun onDeviceAdded(scanResult: ScanResult) {
+        val bleDevice = scanResult.bleDevice
+        val macAddressString = bleDevice.macAddress
+        Log.i(
+            TAG,
+            "scanningElapsedMillis=${Utils.getTimeDurationFormattedString(scanningElapsedMillis!!)} $macAddressString onDeviceAdded: ADDED!"
+        )
+    }
 
+    private fun onDeviceUpdated(scanResult: ScanResult) {
+        val bleDevice = scanResult.bleDevice
+        val macAddressString = bleDevice.macAddress
+        Log.v(
+            TAG,
+            "scanningElapsedMillis=${Utils.getTimeDurationFormattedString(scanningElapsedMillis!!)} $macAddressString onDeviceUpdated: SCANNED!"
+        )
+    }
+
+    private fun onDeviceExpiring(scanResult: ScanResult): Boolean {
+        val bleDevice = scanResult.bleDevice
+        val macAddressString = bleDevice.macAddress
+        //Log.w(TAG, "scanningElapsedMillis=${Utils.getTimeDurationFormattedString(scanningElapsedMillis!!)} $macAddressString onDeviceExpiring: EXPIRING...")
+        //Log.w(TAG, "scanningElapsedMillis=${Utils.getTimeDurationFormattedString(scanningElapsedMillis!!)} $macAddressString onDeviceExpiring: isScanning=$isScanning")
+        @Suppress("UnnecessaryVariable")
+        val keep = !isScanning || scanningElapsedMillis < RECENT_DEVICE_TIMEOUT_MILLIS
+        //Log.w(TAG, "scanningElapsedMillis=${Utils.getTimeDurationFormattedString(scanningElapsedMillis!!)} $macAddressString onDeviceExpiring: keep=$keep")
+        return keep
+    }
+
+    private fun onDeviceRemoved(scanResult: ScanResult) {
+        val bleDevice = scanResult.bleDevice
+        val macAddressString = bleDevice.macAddress
+        Log.i(
+            TAG,
+            "${Utils.getTimeDurationFormattedString(scanningElapsedMillis!!)} $macAddressString onDeviceRemoved: REMOVED!"
+        )
+    }
 }

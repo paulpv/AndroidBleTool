@@ -4,6 +4,8 @@
     package="com.github.paulpv.androidbletool"
     >
 
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application
         android:name=".BleTool$BleToolApp"
         android:allowBackup="true"
@@ -23,9 +25,20 @@
             </intent-filter>
         </activity>
 
-        <service android:name=".NotificationService" />
+        <service android:name=".BleTool$NotificationService" />
 
-        <receiver android:name=".BleTool$BleScanReceiver" />
+        <receiver android:name=".BleTool$BleDeviceScanReceiver" />
+
+        <receiver android:name=".BleTool$BootCompletedReceiver">
+            <intent-filter>
+                <category android:name="android.intent.category.DEFAULT" />
+                <!-- Implicit Broadcast Exceptions
+                 https://developer.android.com/guide/components/broadcast-exceptions.html
+                 -->
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
     </application>
 
