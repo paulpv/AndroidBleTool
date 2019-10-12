@@ -14,7 +14,7 @@ import java.util.*
 
 class BluetoothUtils {
     companion object {
-        private const val TAG = "BluetoothUtils"
+        private val TAG = Utils.TAG(BluetoothUtils::class.java)
 
         fun isBluetoothSupported(context: Context): Boolean {
             return context.packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH)
@@ -86,6 +86,39 @@ class BluetoothUtils {
             }
         }
 
+        /**
+         * @param bluetoothAdapter
+         * @param on
+         * @return true if successfully set; false if the set failed
+         * @see <ul>
+         * <li><a href="https://code.google.com/p/android/issues/detail?id=67272">https://code.google.com/p/android/issues/detail?id=67272</a></li>
+         * <li><a href="https://github.com/RadiusNetworks/android-ibeacon-service/issues/16">https://github.com/RadiusNetworks/android-ibeacon-service/issues/16</a></li>
+         * </ul>
+         */
+        fun bluetoothAdapterEnable(bluetoothAdapter: BluetoothAdapter?, on: Boolean): Boolean {
+            // TODO:(pv) Known to sometimes throw DeadObjectException
+            //  https://code.google.com/p/android/issues/detail?id=67272
+            //  https://github.com/RadiusNetworks/android-ibeacon-service/issues/16
+            return bluetoothAdapter != null &&
+                    if (on) {
+                        try {
+                            bluetoothAdapter.enable()
+                            true
+                        } catch (e: Exception) {
+                            Log.v(TAG, "bluetoothAdapterEnable: bluetoothAdapter.enable()", e)
+                            false
+                        }
+                    } else {
+                        try {
+                            bluetoothAdapter.disable()
+                            true
+                        } catch (e: Exception) {
+                            Log.v(TAG, "bluetoothAdapterEnable: bluetoothAdapter.disable()", e)
+                            false
+                        }
+                    }
+        }
+
         fun gattDeviceAddressToLong(gatt: BluetoothGatt): Long {
             return bluetoothDeviceAddressToLong(gatt.device)
         }
@@ -153,6 +186,17 @@ class BluetoothUtils {
 
         fun macAddressLongToString(macAddressLong: Long): String {
             return String.format(Locale.US, "%012x", macAddressLong)
+        }
+
+        fun bluetoothAdapterStateToString(bluetoothAdapterState: Int): String {
+            val name: String = when (bluetoothAdapterState) {
+                BluetoothAdapter.STATE_OFF -> "STATE_OFF"
+                BluetoothAdapter.STATE_TURNING_ON -> "STATE_TURNING_ON"
+                BluetoothAdapter.STATE_ON -> "STATE_ON"
+                BluetoothAdapter.STATE_TURNING_OFF -> "STATE_TURNING_OFF"
+                else -> "UNKNOWN"
+            }
+            return "$name($bluetoothAdapterState)"
         }
     }
 }

@@ -45,7 +45,7 @@ import java.util.Objects;
  */
 public class IterableLongSparseArray<E>
         implements Cloneable {
-    private static final String TAG = "IterableLongSparseArray";
+    private static final String TAG = Utils.Companion.TAG("IterableLongSparseArray");
 
     /**
      * From {@link androidx.core.util.ContainerHelpers}.

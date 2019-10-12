@@ -6,6 +6,43 @@ import java.util.*
 class Utils {
     companion object {
 
+        @Suppress("FunctionName")
+        fun TAG(o: Any?): String {
+            return TAG(o?.javaClass)
+        }
+
+        @Suppress("FunctionName")
+        fun TAG(c: Class<*>?): String {
+            return TAG(ReflectionUtils.getShortClassName(c))
+        }
+
+        /**
+         * Per http://developer.android.com/reference/android/util/Log.html#isLoggable(java.lang.String, int)
+         */
+        const val LOG_TAG_LENGTH_LIMIT = 23
+
+        /**
+         * Limits the tag length to [#LOG_TAG_LENGTH_LIMIT]
+         * Example: "ReallyLongClassName" to "ReallyLo…lassName"
+         *
+         * @param tag
+         * @return the tag limited to [#LOG_TAG_LENGTH_LIMIT]
+         */
+        @Suppress("FunctionName")
+        fun TAG(tag: String): String {
+            if (tag.length <= LOG_TAG_LENGTH_LIMIT) {
+                return tag
+            }
+            var length = tag.length
+            var _tag = tag.substring(tag.lastIndexOf("$") + 1, length)
+            if (_tag.length <= LOG_TAG_LENGTH_LIMIT) {
+                return _tag
+            }
+            length = _tag.length
+            val half = LOG_TAG_LENGTH_LIMIT / 2
+            return _tag.substring(0, half) + '…' + _tag.substring(length - half)
+        }
+
         fun isNullOrEmpty(value: String?): Boolean {
             return value == null || value == ""
         }

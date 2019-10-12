@@ -2,36 +2,43 @@ package com.github.paulpv.androidbletool
 
 import android.os.Bundle
 import android.util.Log
+import androidx.appcompat.app.AppCompatActivity
 import com.polidea.rxandroidble2.exceptions.BleScanException
+import com.polidea.rxandroidble2.scan.ScanResult
 import io.reactivex.disposables.Disposable
 import kotlinx.android.synthetic.main.activity_main.*
 
-class MainActivity : BleTool.BleToolObserverActivity() {
+class MainActivity : AppCompatActivity(), BleTool.BleToolActivity {
 
     companion object {
-        private const val TAG = "MainActivity"
+        private val TAG = Utils.TAG(MainActivity::class.java)
     }
 
-    private lateinit var bleTool: BleTool
+    private var bleTool: BleTool? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        bleTool = (applicationContext as BleTool.BleToolApp).bleTool
+        bleTool = BleTool.getInstance(this)
         setContentView(R.layout.activity_main)
-        scan_start_btn.setOnClickListener { bleTool.scan(true, this, true) }
-        scan_stop_btn.setOnClickListener { bleTool.scan(false, this, true) }
+        button_scan_start.setOnClickListener { bleTool?.persistentScanningEnable(true) }
+        button_scan_stop.setOnClickListener { bleTool?.persistentScanningEnable(false) }
     }
 
+    /*
     override fun onStart() {
         super.onStart()
-        bleTool.attach(this)
+        //bleTool?.onStart(this)
+        //bleTool?.attach(this)
     }
 
     override fun onStop() {
         super.onStop()
-        bleTool.detach(this)
+        //bleTool?.onStop()
+        //bleTool?.detach(this)
     }
+    */
 
+    /*
     override fun onComplete() {
         Log.e(TAG, "onComplete")
     }
@@ -40,8 +47,8 @@ class MainActivity : BleTool.BleToolObserverActivity() {
         Log.e(TAG, "onSubscribe: d=$d")
     }
 
-    override fun onNext(r: BleTool.BleScanResult) {
-        Log.e(TAG, "onNext: scanningElapsedMillis=${r.bleTool.scanningElapsedMillis} scanResult=${r.scanResult}")
+    override fun onNext(scanResult: ScanResult) {
+        Log.e(TAG, "onNext: persistentScanningElapsedMillis=${bleTool?.persistentScanningElapsedMillis} scanResult=${scanResult}")
     }
 
     override fun onError(e: Throwable) {
@@ -51,5 +58,5 @@ class MainActivity : BleTool.BleToolObserverActivity() {
             else -> showSnackbarShort(e.message ?: "null")
         }
     }
-
+    */
 }

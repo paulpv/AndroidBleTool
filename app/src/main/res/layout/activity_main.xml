@@ -8,6 +8,7 @@
     >
 
     <LinearLayout
+        android:id="@+id/group_start_stop"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_horizontal"
@@ -18,14 +19,14 @@
         >
 
         <Button
-            android:id="@+id/scan_start_btn"
+            android:id="@+id/button_scan_start"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/button_start_scan"
             />
 
         <Button
-            android:id="@+id/scan_stop_btn"
+            android:id="@+id/button_scan_stop"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/button_stop_scan"

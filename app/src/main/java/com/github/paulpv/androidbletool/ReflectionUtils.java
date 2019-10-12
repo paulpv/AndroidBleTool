@@ -8,7 +8,7 @@ import java.lang.reflect.Field;
 
 @SuppressWarnings({"WeakerAccess", "unused"})
 public class ReflectionUtils {
-    private static final String TAG = "ReflectionUtils";
+    private static final String TAG = Utils.Companion.TAG(ReflectionUtils.class);
 
     private ReflectionUtils() {
     }

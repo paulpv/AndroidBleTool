@@ -13,7 +13,7 @@ import java.util.Set;
 
 @SuppressWarnings({"WeakerAccess", "unused"})
 public class ListenerManager<T> {
-    private static final String TAG = "ListenerManager";
+    private static final String TAG = Utils.Companion.TAG("ListenerManager");
 
     @SuppressWarnings({"PointlessBooleanExpression", "ConstantConditions"})
     private static final boolean VERBOSE_LOG = false && BuildConfig.DEBUG;
