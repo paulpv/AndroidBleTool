@@ -129,6 +129,99 @@ class BleTool(private val configuration: BleToolConfiguration) {
         }
     }
 
+    /**
+     * Implicit Broadcast Exceptions registered in AndroidManifest.xml
+     * https://developer.android.com/guide/components/broadcast-exceptions.html
+     * Intent.ACTION_BOOT_COMPLETED
+     * Intent.ACTION_LOCKED_BOOT_COMPLETED
+     *
+     * Requires android.permission.RECEIVE_BOOT_COMPLETED
+     * <p>
+     * Test on emulator:
+     * 1) adb kill-server
+     * 2) adb root
+     * 3) adb shell am broadcast -a android.intent.action.BOOT_COMPLETED -n com.github.paulpv.androidbletool/com.github.paulpv.androidbletool.BleTool.BootCompletedReceiver
+     */
+    class BootCompletedReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_LOCKED_BOOT_COMPLETED -> {
+                    getInstance(context)?.onAppProcessStartReceived(context, intent)
+                }
+            }
+        }
+    }
+
+    private abstract class ExplicitBroadcastReceiver(TAG: String, private val context: Context) : BroadcastReceiver() {
+
+        @Suppress("PrivatePropertyName")
+        private val TAG = Utils.TAG(TAG)
+
+        abstract val intentFilter: IntentFilter
+
+        private var isRegistered = false
+
+        fun register() {
+            Log.i(TAG, "+register()")
+            if (!isRegistered) {
+                Log.v(TAG, "register: context.registerReceiver(this, intentFilter)")
+                context.registerReceiver(this, intentFilter)
+
+                isRegistered = true
+            }
+            Log.i(TAG, "-register()")
+        }
+
+        fun unregister() {
+            Log.i(TAG, "+unregister()")
+            if (isRegistered) {
+                Log.v(TAG, "register: context.unregisterReceiver(this)")
+                context.unregisterReceiver(this)
+            }
+            Log.i(TAG, "-unregister()")
+        }
+
+        override fun onReceive(context: Context, intent: Intent) {
+            for (action in intentFilter.actionsIterator()) {
+                if (action == intent.action) {
+                    getInstance(context)?.onBroadcastReceived(this, context, intent)
+                    break
+                }
+            }
+        }
+    }
+
+    private class AppProcessStartReceiver(context: Context) :
+        ExplicitBroadcastReceiver(Utils.TAG(AppProcessStartReceiver::class.java), context) {
+        override val intentFilter: IntentFilter
+            get() {
+                val intentFilter = IntentFilter()
+                /**
+                 * <p>
+                 * Test on emulator:
+                 * 1) adb kill-server
+                 * 2) adb root
+                 * 3) adb shell am broadcast -a android.intent.action.MY_PACKAGE_REPLACED -n com.github.paulpv.androidbletool/com.github.paulpv.androidbletool.BleTool.AppReplacedReceiver
+                 */
+                intentFilter.addAction(Intent.ACTION_MY_PACKAGE_REPLACED)
+                return intentFilter
+            }
+    }
+
+    private class AppProcessRunningStateChangeReceiver(context: Context) :
+        ExplicitBroadcastReceiver(Utils.TAG(AppProcessRunningStateChangeReceiver::class.java), context) {
+        override val intentFilter: IntentFilter
+            get() {
+                val intentFilter = IntentFilter()
+                intentFilter.addAction(Intent.ACTION_POWER_CONNECTED)
+                intentFilter.addAction(Intent.ACTION_POWER_DISCONNECTED)
+                intentFilter.addAction(Intent.ACTION_SCREEN_OFF)
+                intentFilter.addAction(Intent.ACTION_SCREEN_ON)
+                intentFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+                return intentFilter
+            }
+    }
+
     class BleDeviceScanReceiver : BroadcastReceiver() {
         companion object {
             private const val ACTION = "com.github.paulpv.androidbletool.BleTool.BleDeviceScanReceiver.ACTION"
@@ -147,61 +240,6 @@ class BleTool(private val configuration: BleToolConfiguration) {
                 }
             }
         }
-    }
-
-    /**
-     * Requires android.permission.RECEIVE_BOOT_COMPLETED
-     * <p>
-     * Test on emulator:
-     * 1) adb kill-server
-     * 2) adb root
-     * 3) adb shell am broadcast -a android.intent.action.BOOT_COMPLETED -n com.github.paulpv.androidbletool/com.github.paulpv.androidbletool.BleTool.BootCompletedReceiver
-     */
-    class BootCompletedReceiver : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            when (intent.action) {
-                Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_LOCKED_BOOT_COMPLETED -> {
-                    getInstance(context)?.onAppProcessStartReceived(context, intent)
-                }
-            }
-        }
-    }
-
-    class AppProcessStartReceiver(context: Context) :
-        MyBroadcastReceiver(Utils.TAG(AppProcessStartReceiver::class.java), context) {
-        override val intentFilter: IntentFilter
-            get() {
-                /*
-                 Implicit Broadcast Exceptions registered in AndroidManifest.xml
-                 https://developer.android.com/guide/components/broadcast-exceptions.html
-                 Intent.ACTION_BOOT_COMPLETED
-                 Intent.ACTION_LOCKED_BOOT_COMPLETED
-                 */
-                val intentFilter = IntentFilter()
-                /**
-                 * <p>
-                 * Test on emulator:
-                 * 1) adb kill-server
-                 * 2) adb root
-                 * 3) adb shell am broadcast -a android.intent.action.MY_PACKAGE_REPLACED -n com.github.paulpv.androidbletool/com.github.paulpv.androidbletool.BleTool.AppReplacedReceiver
-                 */
-                intentFilter.addAction(Intent.ACTION_MY_PACKAGE_REPLACED)
-                return intentFilter
-            }
-    }
-
-    class AppProcessRunningStateChangeReceiver(context: Context) :
-        MyBroadcastReceiver(Utils.TAG(AppProcessRunningStateChangeReceiver::class.java), context) {
-        override val intentFilter: IntentFilter
-            get() {
-                val intentFilter = IntentFilter()
-                intentFilter.addAction(Intent.ACTION_POWER_CONNECTED)
-                intentFilter.addAction(Intent.ACTION_POWER_DISCONNECTED)
-                intentFilter.addAction(Intent.ACTION_SCREEN_OFF)
-                intentFilter.addAction(Intent.ACTION_SCREEN_ON)
-                intentFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
-                return intentFilter
-            }
     }
 
     class NotificationService : Service() {
@@ -830,7 +868,7 @@ class BleTool(private val configuration: BleToolConfiguration) {
     class ResumeWorker(private val context: Context, params: WorkerParameters) : Worker(context, params) {
         override fun doWork(): Result {
             @Suppress("RemoveRedundantQualifierName")
-            BleTool.getInstance(context)?.persistentScanningResumeIfEnabled("ResumeWorker")
+            getInstance(context)?.persistentScanningResumeIfEnabled("ResumeWorker")
             return Result.success()
         }
     }
