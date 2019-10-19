@@ -1,7 +1,12 @@
 <resources>
-    <string name="app_name">Android BLE Tool</string>
-    <string name="button_start_scan">Start Scan</string>
-    <string name="button_stop_scan">Stop Scan</string>
+    <string name="app_name">BLE Tool</string>
+    <string name="action_scan">Scan</string>
+    <string name="action_sortby_address">Sort By Address</string>
+    <string name="action_sortby_name">Sort By Name</string>
+    <string name="action_sortby_signal_level_rssi">Sort By RSSI</string>
+    <string name="action_sortby_age">Sort By Age</string>
+    <string name="action_sortby_timeout_remaining">Sort By Timeout Remaining</string>
+    <string name="action_clear">Clear</string>
 
     <!-- BleTool -->
     <string name="scanning">Scanning…</string>

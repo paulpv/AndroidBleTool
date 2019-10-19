@@ -15,6 +15,7 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
+import com.livinglifetechway.quickpermissions_kotlin.runWithPermissions
 import com.livinglifetechway.quickpermissions_kotlin.util.PermissionsUtil
 import com.polidea.rxandroidble2.LogConstants
 import com.polidea.rxandroidble2.LogOptions
@@ -23,7 +24,6 @@ import com.polidea.rxandroidble2.exceptions.BleScanException
 import com.polidea.rxandroidble2.scan.ScanFilter
 import com.polidea.rxandroidble2.scan.ScanResult
 import com.polidea.rxandroidble2.scan.ScanSettings
-import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import java.util.concurrent.TimeUnit
@@ -35,35 +35,6 @@ import kotlin.system.exitProcess
  * https://kotlinlang.org/docs/reference/java-to-kotlin-interop.html
  */
 class BleTool(private val configuration: BleToolConfiguration) {
-
-    interface BleToolConfiguration {
-        val application: Application
-        /**
-         * If null, then Looper.getMainLooper() will be used
-         */
-        val looper: Looper?
-        /**
-         * May be calculated dynamically
-         */
-        val scanningNotificationActivityClass: Class<out Activity>
-    }
-
-    interface BleToolApplication {
-        val bleTool: BleTool
-    }
-
-    /*
-    class BleScanResult(val bleTool: BleTool, val scanResult: ScanResult)
-
-    interface BleToolObserver : Observer<BleScanResult>
-
-    abstract class BleToolObserverActivity : BleToolObserver, AppCompatActivity()
-    */
-
-    //
-    //
-    //
-
     companion object {
         private val TAG = Utils.TAG(BleTool::class.java)
 
@@ -83,6 +54,33 @@ class BleTool(private val configuration: BleToolConfiguration) {
             return (context.applicationContext as BleToolApplication?)?.bleTool
         }
     }
+
+    interface BleToolConfiguration {
+        val application: Application
+        /**
+         * If null, then Looper.getMainLooper() will be used
+         */
+        val looper: Looper?
+        /**
+         * May be calculated dynamically
+         */
+        val scanningNotificationActivityClass: Class<out Activity>
+    }
+
+    interface BleToolApplication {
+        val bleTool: BleTool
+    }
+
+    interface DeviceScanObserver {
+        fun onDeviceScanError(bleTool: BleTool, e: Throwable): Boolean
+        fun onDeviceAdded(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>)
+        fun onDeviceUpdated(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>)
+        fun onDeviceRemoved(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>)
+    }
+
+    //
+    //
+    //
 
     /**
      * TL;DR: As of Android 24 (7/Nougat) [android.bluetooth.le.BluetoothLeScanner.startScan] is limited to 5 calls in 30 seconds.
@@ -411,53 +409,53 @@ class BleTool(private val configuration: BleToolConfiguration) {
 
         application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity?, savedInstanceState: Bundle?) {
-                this@BleTool.onActivityCreated(activity)
+                this@BleTool.onActivityCreated(activity!!)
             }
 
             override fun onActivityStarted(activity: Activity?) {
-                this@BleTool.onActivityStarted(activity)
+                this@BleTool.onActivityStarted(activity!!)
             }
 
             override fun onActivityResumed(activity: Activity?) {
-                this@BleTool.onActivityResumed(activity)
+                this@BleTool.onActivityResumed(activity!!)
             }
 
             override fun onActivitySaveInstanceState(activity: Activity?, outState: Bundle?) {
-                this@BleTool.onActivitySaveInstanceState(activity, outState)
+                this@BleTool.onActivitySaveInstanceState(activity!!, outState)
             }
 
             override fun onActivityPaused(activity: Activity?) {
-                this@BleTool.onActivityPaused(activity)
+                this@BleTool.onActivityPaused(activity!!)
             }
 
             override fun onActivityStopped(activity: Activity?) {
-                this@BleTool.onActivityStopped(activity)
+                this@BleTool.onActivityStopped(activity!!)
             }
 
             override fun onActivityDestroyed(activity: Activity?) {
-                this@BleTool.onActivityDestroyed(activity)
+                this@BleTool.onActivityDestroyed(activity!!)
             }
         })
 
         recentlyNearbyDevices.addListener(object : ExpiringIterableLongSparseArray.ExpiringIterableLongSparseArrayListener<ScanResult> {
-            override fun onItemAdded(key: Long, index: Int, value: ScanResult) {
+            override fun onItemAdded(key: Long, index: Int, item: ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>) {
                 //Log.i(TAG, "onItemAdded: key=$key, index=$index, value=$value")
-                this@BleTool.onDeviceAdded(value)
+                this@BleTool.onDeviceAdded(item)
             }
 
-            override fun onItemUpdated(key: Long, index: Int, scanResult: ScanResult, ageMillis: Long, timeoutMillis: Long) {
+            override fun onItemUpdated(key: Long, index: Int, item: ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>) {
                 //Log.w(TAG, "onItemUpdated: key=$key, index=$index, value=$value, ageMillis=$ageMillis, timeoutMillis=$timeoutMillis")
-                this@BleTool.onDeviceUpdated(scanResult, ageMillis, timeoutMillis)
+                this@BleTool.onDeviceUpdated(item)
             }
 
-            override fun onItemExpiring(key: Long, index: Int, scanResult: ScanResult, ageMillis: Long, timeoutMillis: Long): Boolean {
+            override fun onItemExpiring(key: Long, index: Int, item: ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>): Boolean {
                 //Log.w(TAG, "onItemExpiring: key=$key, index=$index, value=$value, ageMillis=$ageMillis, timeoutMillis=$timeoutMillis")
-                return this@BleTool.onDeviceExpiring(scanResult, ageMillis, timeoutMillis)
+                return this@BleTool.onDeviceExpiring(item)
             }
 
-            override fun onItemRemoved(key: Long, index: Int, scanResult: ScanResult, ageMillis: Long, timeoutMillis: Long, expired: Boolean) {
+            override fun onItemRemoved(key: Long, index: Int, item: ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>) {
                 //Log.i(TAG, "onItemRemoved: key=$key, index=$index, value=$value, ageMillis=$ageMillis, timeoutMillis=$timeoutMillis, expired=$expired")
-                this@BleTool.onDeviceRemoved(scanResult, ageMillis, timeoutMillis, expired)
+                this@BleTool.onDeviceRemoved(item)
             }
         })
 
@@ -661,85 +659,95 @@ class BleTool(private val configuration: BleToolConfiguration) {
     //
     //
 
-    private fun onActivityCreated(activity: Activity?) {
+    private var currentActivity: Activity? = null
+    private val deviceScanObservers: MutableSet<DeviceScanObserver> = mutableSetOf()
+
+    private fun onActivityCreated(activity: Activity) {
         Log.e(TAG, "onActivityCreated(activity=$activity)")
         activityAdd(activity)
     }
 
-    private fun onActivityStarted(activity: Activity?) {
+    private fun onActivityStarted(activity: Activity) {
         Log.e(TAG, "onActivityStarted(activity=$activity)")
         activityAdd(activity)
     }
 
-    private fun onActivityResumed(activity: Activity?) {
+    private fun onActivityResumed(activity: Activity) {
         Log.e(TAG, "onActivityResumed(activity=$activity)")
         activityAdd(activity)
     }
 
-    private fun onActivitySaveInstanceState(activity: Activity?, outState: Bundle?) {
+    private fun onActivitySaveInstanceState(activity: Activity, outState: Bundle?) {
         Log.e(TAG, "onActivitySaveInstanceState(activity=$activity, outState=$outState)")
         //...
     }
 
-    private fun onActivityPaused(activity: Activity?) {
+    private fun onActivityPaused(activity: Activity) {
         Log.e(TAG, "onActivityPaused(activity=$activity)")
         activityRemove(activity)
     }
 
-    private fun onActivityStopped(activity: Activity?) {
+    private fun onActivityStopped(activity: Activity) {
         Log.e(TAG, "onActivityStopped(activity=$activity)")
         activityRemove(activity)
     }
 
-    private fun onActivityDestroyed(activity: Activity?) {
+    private fun onActivityDestroyed(activity: Activity) {
         Log.e(TAG, "onActivityDestroyed(activity=$activity)")
         activityRemove(activity)
     }
 
-    private fun activityAdd(activity: Activity?) {
-        if (activity is BleToolActivity) {
-            if (activities.add(activity)) {
-                //...
-            }
+    private fun activityAdd(activity: Activity) {
+        currentActivity = activity
+        if (activity is DeviceScanObserver) {
+            attach(activity)
         }
     }
 
-    private fun activityRemove(activity: Activity?) {
-        if (activity is BleToolActivity) {
-            if (activities.remove(activity)) {
-                //...
-            }
+    private fun activityRemove(activity: Activity) {
+        currentActivity = null
+        if (activity is DeviceScanObserver) {
+            detach(activity)
         }
     }
 
-    /*
-    fun attach(observer: BleToolObserver) {
-        scanResultObservers.add(observer)
+    @Suppress("MemberVisibilityCanBePrivate")
+    fun attach(observer: DeviceScanObserver) {
+        Log.v(TAG, "attach(observer=$observer)")
+        if (deviceScanObservers.add(observer)) {
+            //...
+        }
     }
 
-    fun detach(observer: BleToolObserver) {
-        scanResultObservers.remove(observer)
+    @Suppress("MemberVisibilityCanBePrivate")
+    fun detach(observer: DeviceScanObserver) {
+        Log.v(TAG, "attach(observer=$observer)")
+        if (deviceScanObservers.remove(observer)) {
+            //...
+        }
     }
-    */
 
     //
     //
     //
 
-    fun persistentScanningEnable(enable: Boolean) {
+    fun persistentScanningEnable(enable: Boolean): Boolean {
         Log.i(TAG, "persistentScanningEnable(enable=$enable)")
-        if (enable) {
+        return if (enable) {
             persistentScanningStart()
         } else {
             persistentScanningStop()
         }
     }
 
-    /**
-     * Checks for Permissions
+    @Suppress("PropertyName", "PrivatePropertyName")
+    private val PERMISSIONS = arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION)
+
+    /*
+     * Checks for Permissions and then calls persistentScanningResume(...)
      */
     @Suppress("MemberVisibilityCanBePrivate")
-    fun persistentScanningStart() {
+    fun persistentScanningStart(): Boolean {
         Log.i(TAG, "persistentScanningStart()")
 
         val callback = {
@@ -750,12 +758,39 @@ class BleTool(private val configuration: BleToolConfiguration) {
             }
         }
 
-        if (PermissionsUtil.hasSelfPermission(application, arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION))) {
+        if (PermissionsUtil.hasSelfPermission(application, PERMISSIONS)) {
             callback()
-            return
+            return isPersistentScanningEnabled
         }
 
         // TODO:(pv) Handle permissions, including denied
+
+        if (currentActivity != null) {
+            currentActivity.runWithPermissions(
+                *PERMISSIONS
+                /*
+                , options = QuickPermissionsOptions(
+                    handleRationale = false,
+                    rationaleMessage = "Custom rational message",
+                    permanentlyDeniedMessage = "Custom permanently denied message",
+                    rationaleMethod = { req ->
+                        {
+
+                        }
+                    },
+                    permanentDeniedMethod = { req ->
+                        {
+
+                        }
+                    }
+                )*/
+            ) {
+                callback()
+            }
+            return true
+        }
+
+        return true
     }
 
     @SuppressLint("NewApi")
@@ -788,7 +823,16 @@ class BleTool(private val configuration: BleToolConfiguration) {
         return success
     }
 
-    /**
+    private fun persistentScanningResumeIfEnabled(caller: String) {
+        if (isPersistentScanningEnabled) {
+            Log.i(TAG, "$caller; isPersistentScanningEnabled == true; RESUME and update notification")
+            persistentScanningResume(caller, true)
+        } else {
+            Log.i(TAG, "$caller; isPersistentScanningEnabled == false; ignoring")
+        }
+    }
+
+    /*
      * Does *NOT* check for Permissions!
      */
     @SuppressLint("NewApi")
@@ -827,10 +871,10 @@ class BleTool(private val configuration: BleToolConfiguration) {
                             .subscribe({ processScanResult(it) }, { onScanError(it) })
                         //.let { scanDisposable = it }
                     }
+
                     // TODO:(pv) Find a way to get auto-start after reboot to work without using NotificationService.
                     //      Then we truly only have to show notification if API < 26.
 
-                    // TODO:(pv) Pause/Resume every 3.1 seconds
                     success = true
 
                 } catch (scanException: BleScanException) {
@@ -849,28 +893,12 @@ class BleTool(private val configuration: BleToolConfiguration) {
     }
 
     @Suppress("MemberVisibilityCanBePrivate")
-    fun persistentScanningStop() {
+    fun persistentScanningStop(): Boolean {
         Log.i(TAG, "persistentScanningStop()")
+        if (!isPersistentScanningEnabled) return false
         persistentScanningStartedMillis = PERSISTENT_SCANNING_STARTED_MILLIS_UNDEFINED
         persistentScanningBackgroundPid = PERSISTENT_SCANNING_BACKGROUND_PID_UNDEFINED
-        persistentScanningPause(true)
-    }
-
-    private fun persistentScanningResumeIfEnabled(caller: String) {
-        if (isPersistentScanningEnabled) {
-            Log.i(TAG, "$caller; isPersistentScanningEnabled == true; RESUME and update notification")
-            persistentScanningResume(caller, true)
-        } else {
-            Log.i(TAG, "$caller; isPersistentScanningEnabled == false; ignoring")
-        }
-    }
-
-    class ResumeWorker(private val context: Context, params: WorkerParameters) : Worker(context, params) {
-        override fun doWork(): Result {
-            @Suppress("RemoveRedundantQualifierName")
-            getInstance(context)?.persistentScanningResumeIfEnabled("ResumeWorker")
-            return Result.success()
-        }
+        return persistentScanningPause(true)
     }
 
     /**
@@ -882,6 +910,17 @@ class BleTool(private val configuration: BleToolConfiguration) {
     private val MINIMUM_RELIABLE_WORK_REQUEST_DELAY_MILLIS = 15 * 60 * 1000L // 15 minutes
     @Suppress("PrivatePropertyName")
     private val DELAYED_SCANNING_FAILSAFE_RESUME_MILLIS = MINIMUM_RELIABLE_WORK_REQUEST_DELAY_MILLIS
+
+    /**
+     * Runs MINIMUM_RELIABLE_WORK_REQUEST_DELAY_MILLIS after Pause to pseudo-ensure that scanning is resumed
+     */
+    class ResumeWorker(private val context: Context, params: WorkerParameters) : Worker(context, params) {
+        override fun doWork(): Result {
+            @Suppress("RemoveRedundantQualifierName")
+            getInstance(context)?.persistentScanningResumeIfEnabled("ResumeWorker")
+            return Result.success()
+        }
+    }
 
     private fun delayedScanningResumeAdd() {
         resumeWorkRequest = OneTimeWorkRequest.Builder(ResumeWorker::class.java)
@@ -948,7 +987,7 @@ class BleTool(private val configuration: BleToolConfiguration) {
     //
 
     @SuppressLint("NewApi")
-    fun onScanResultReceived(context: Context, intent: Intent) {
+    fun onScanResultReceived(@Suppress("UNUSED_PARAMETER") context: Context, intent: Intent) {
         val persistentScanningBackgroundPid = persistentScanningBackgroundPid
 
         @Suppress("SimplifyBooleanWithConstants")
@@ -996,7 +1035,8 @@ class BleTool(private val configuration: BleToolConfiguration) {
     }
 
     private fun onScanError(throwable: Throwable) {
-        //scanResultObservers.forEach { it.onError(throwable) }
+        Log.e(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} onScanError: $throwable")
+        deviceScanObservers.forEach { it.onDeviceScanError(this, throwable) }
     }
 
     private fun processScanResult(scanResult: ScanResult) {
@@ -1009,27 +1049,33 @@ class BleTool(private val configuration: BleToolConfiguration) {
         recentlyNearbyDevices.put(macAddressLong, scanResult)
     }
 
-    private fun onDeviceAdded(scanResult: ScanResult) {
+    private fun onDeviceAdded(item: ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>) {
+        val scanResult = item.value
         val bleDevice = scanResult.bleDevice
         val macAddressString = bleDevice.macAddress
-        Log.i(
-            TAG,
-            "scanningElapsedMillis=${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceAdded: ADDED!"
-        )
+        // @formatter:off
+        Log.i(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceAdded: ADDED!")
+        // @formatter:on
+        deviceScanObservers.forEach { it.onDeviceAdded(this, item) }
     }
 
-    private fun onDeviceUpdated(scanResult: ScanResult, ageMillis: Long, timeoutMillis: Long) {
+    private fun onDeviceUpdated(item: ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>) {
+        val scanResult = item.value
         val bleDevice = scanResult.bleDevice
         val macAddressString = bleDevice.macAddress
-        Log.v(
-            TAG,
-            "scanningElapsedMillis=${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceUpdated: SCANNED! ageMillis=${ageMillis}ms"
-        )
+        val ageMillis = item.ageMillis
+        // @formatter:off
+        Log.v(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceUpdated: SCANNED! ageMillis=${ageMillis}ms")
+        // @formatter:on
+
+        deviceScanObservers.forEach { it.onDeviceUpdated(this, item) }
     }
 
-    private fun onDeviceExpiring(scanResult: ScanResult, ageMillis: Long, timeoutMillis: Long): Boolean {
+    private fun onDeviceExpiring(item: ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>): Boolean {
+        val scanResult = item.value
         val bleDevice = scanResult.bleDevice
         val macAddressString = bleDevice.macAddress
+        val timeoutMillis = item.timeoutMillis
         // @formatter:off
         Log.w(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceExpiring: timeoutMillis=$timeoutMillis")
         //Log.w(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceExpiring: EXPIRING...")
@@ -1043,11 +1089,13 @@ class BleTool(private val configuration: BleToolConfiguration) {
         return keep
     }
 
-    private fun onDeviceRemoved(scanResult: ScanResult, ageMillis: Long, timeoutMillis: Long, expired: Boolean) {
+    private fun onDeviceRemoved(item: ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>) {
+        val scanResult = item.value
         val bleDevice = scanResult.bleDevice
         val macAddressString = bleDevice.macAddress
         // @formatter:off
         Log.i(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceRemoved: REMOVED!")
         // @formatter:on
+        deviceScanObservers.forEach { it.onDeviceRemoved(this, item) }
     }
 }

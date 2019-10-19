@@ -1,5 +1,7 @@
 package com.github.paulpv.androidbletool
 
+import android.content.Intent
+import android.os.Bundle
 import java.util.*
 
 @Suppress("MemberVisibilityCanBePrivate")
@@ -34,13 +36,14 @@ class Utils {
                 return tag
             }
             var length = tag.length
-            var _tag = tag.substring(tag.lastIndexOf("$") + 1, length)
-            if (_tag.length <= LOG_TAG_LENGTH_LIMIT) {
-                return _tag
+            @Suppress("NAME_SHADOWING")
+            val tag = tag.substring(tag.lastIndexOf("$") + 1, length)
+            if (tag.length <= LOG_TAG_LENGTH_LIMIT) {
+                return tag
             }
-            length = _tag.length
+            length = tag.length
             val half = LOG_TAG_LENGTH_LIMIT / 2
-            return _tag.substring(0, half) + '…' + _tag.substring(length - half)
+            return tag.substring(0, half) + '…' + tag.substring(length - half)
         }
 
         fun isNullOrEmpty(value: String?): Boolean {
@@ -113,6 +116,7 @@ class Utils {
         /**
          * Returns a string composed from a [Map].
          */
+        @Suppress("unused")
         fun <K, V> toString(map: Map<K, V>?): String {
             if (map == null) {
                 return "null"
@@ -135,6 +139,57 @@ class Utils {
             }
             buffer.append('}')
             return buffer.toString()
+        }
+
+        fun toString(intent: Intent?): String {
+            if (intent == null) {
+                return "null"
+            }
+
+            val sb = StringBuilder()
+
+            sb.append(intent.toString())
+
+            val bundle = intent.extras
+            sb.append(", extras=").append(toString(bundle))
+
+            return sb.toString()
+        }
+
+        fun toString(bundle: Bundle?): String {
+            if (bundle == null) {
+                return "null"
+            }
+
+            val sb = StringBuilder()
+
+            val keys = bundle.keySet()
+            val it = keys.iterator()
+
+            sb.append('{')
+            while (it.hasNext()) {
+                val key = it.next()
+                var value = bundle.get(key)
+
+                sb.append(quote(key)).append('=')
+
+                if (key.toLowerCase(Locale.getDefault()).contains("password")) {
+                    value = "*CENSORED*"
+                }
+
+                when (value) {
+                    is Bundle -> sb.append(toString(value))
+                    is Intent -> sb.append(toString(value))
+                    else -> sb.append(quote(value))
+                }
+
+                if (it.hasNext()) {
+                    sb.append(", ")
+                }
+            }
+            sb.append('}')
+
+            return sb.toString()
         }
 
         fun split(source: String, separator: String, limit: Int): Array<String> {
@@ -185,6 +240,7 @@ class Utils {
             return padNumber(number, '0', minimumLength)
         }
 
+        @Suppress("unused")
         fun formatNumber(number: Double, leading: Int, trailing: Int): String {
             if (java.lang.Double.isNaN(number) || number == java.lang.Double.NEGATIVE_INFINITY || number == java.lang.Double.POSITIVE_INFINITY) {
                 return number.toString()

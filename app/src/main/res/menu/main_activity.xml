@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".MainActivity"
+    >
+
+    <item
+        android:id="@+id/action_toggle_scanning"
+        android:title="@string/action_scan"
+        app:actionLayout="@layout/toolbar_switch"
+        app:showAsAction="always"
+        tools:ignore="AlwaysShowAction"
+        />
+
+    <group
+        android:checkableBehavior="single"
+        android:orderInCategory="200"
+        android:visible="true"
+        >
+        <item
+            android:id="@+id/action_sortby_address"
+            android:title="@string/action_sortby_address"
+            app:showAsAction="never"
+            />
+        <item
+            android:id="@+id/action_sortby_name"
+            android:title="@string/action_sortby_name"
+            app:showAsAction="never"
+            />
+        <item
+            android:id="@+id/action_sortby_signal_level_rssi"
+            android:title="@string/action_sortby_signal_level_rssi"
+            app:showAsAction="never"
+            />
+        <item
+            android:id="@+id/action_sortby_age"
+            android:title="@string/action_sortby_age"
+            app:showAsAction="never"
+            />
+        <item
+            android:id="@+id/action_sortby_timeout_remaining"
+            android:title="@string/action_sortby_timeout_remaining"
+            app:showAsAction="never"
+            />
+    </group>
+
+    <item
+        android:id="@+id/action_clear"
+        android:title="@string/action_clear"
+        app:showAsAction="never"
+        />
+
+</menu>
