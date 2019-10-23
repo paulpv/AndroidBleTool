@@ -30,7 +30,7 @@ abstract class SortableAdapter<S : Enum<*>, T, VH : BindableViewHolder<T>> inter
         set(sortBy) {
             Log.d(TAG, "setSortBy(sortBy=$sortBy)")
 
-            if (this.sortBy == null || this.sortBy !== sortBy) {
+            if (this.sortBy == null || this.sortBy != sortBy) {
                 field = sortBy
                 sortReversed = false
             } else {
@@ -38,11 +38,12 @@ abstract class SortableAdapter<S : Enum<*>, T, VH : BindableViewHolder<T>> inter
             }
 
             val comparator = getComparator(this.sortBy, sortReversed)
-            Log.v(TAG, "setSortBy: mComparator=$comparator")
+            Log.v(TAG, "setSortBy: comparator=$comparator")
 
             items.setSortByValueComparator(comparator)
             notifyItemRangeChanged(0, items.size())
         }
+
     private var sortReversed: Boolean = false
 
     private var eventListener: EventListener<T>? = null
@@ -64,11 +65,9 @@ abstract class SortableAdapter<S : Enum<*>, T, VH : BindableViewHolder<T>> inter
     }
 
     private fun onItemClicked(v: View) {
-        val holder = v.tag as BindableViewHolder<*>
-
-        val item = getItemFromHolder(holder)
-
         if (eventListener != null) {
+            val holder = v.tag as BindableViewHolder<*>
+            val item = getItemFromHolder(holder)
             eventListener!!.onItemSelected(item)
         }
     }
@@ -92,11 +91,12 @@ abstract class SortableAdapter<S : Enum<*>, T, VH : BindableViewHolder<T>> inter
     }
 
     fun clear() {
+        lastRemovedItem = null
         val size = itemCount
-        //PbLog.e(TAG, "clear: size=" + size);
-        //PbLog.e(TAG, "clear: mItems.clear()");
+        //Log.e(TAG, "clear: size=$size");
+        //Log.e(TAG, "clear: mItems.clear()");
         items.clear()
-        //PbLog.e(TAG, "clear: notifyItemRangeRemoved(0, " + size + ')');
+        //Log.e(TAG, "clear: notifyItemRangeRemoved(0, $size)');
         notifyItemRangeRemoved(0, size)
     }
 
@@ -111,20 +111,17 @@ abstract class SortableAdapter<S : Enum<*>, T, VH : BindableViewHolder<T>> inter
     }
 
     fun put(item: T): Int {
-        //PbLog.e(TAG, "put(item=" + item + ')');
-
+        //Log.e(TAG, "put(item=$item)");
         var position = items.add(item)
-        //PbLog.e(TAG, "put: position == " + position);
-
+        //Log.e(TAG, "put: position == $position");
         if (position > -1) {
-            //PbLog.e(TAG, "put: notifyItemChanged(position=" + position + ')');
+            //Log.e(TAG, "put: notifyItemChanged(position=$position)");
             notifyItemChanged(position)
         } else {
             position = -position - 1
-            //PbLog.e(TAG, "put: notifyItemInserted(position=" + position + ')');
+            //Log.e(TAG, "put: notifyItemInserted(position=$position)");
             notifyItemInserted(position)
         }
-
         return position
     }
 
@@ -134,25 +131,19 @@ abstract class SortableAdapter<S : Enum<*>, T, VH : BindableViewHolder<T>> inter
      * @return the item that was removed, or null if no item was removed
      */
     fun remove(item: T, allowUndo: Boolean): T? {
-        //PbLog.e(TAG, "remove(item=" + item + ", allowUndo=" + allowUndo + ')');
-
+        //Log.e(TAG, "remove(item=$item, allowUndo=$allowUndo)");
         val position = items.indexOf(item)
-
         if (position < 0) {
-            //PbLog.e(TAG, "remove: position(" + position + ") < 0; ignoring");
+            //Log.e(TAG, "remove: position($position) < 0; ignoring");
             return null
         }
-
-        //PbLog.e(TAG, "remove: mItems.removeAt(position=" + position + ')');
+        //Log.e(TAG, "remove: mItems.removeAt(position=$position)");
         val removed = items.removeAt(position)
-
-        //PbLog.e(TAG, "remove: notifyItemRemoved(position=" + position + ')');
+        //Log.e(TAG, "remove: notifyItemRemoved(position=$position)");
         notifyItemRemoved(position)
-
         if (allowUndo) {
             lastRemovedItem = removed
         }
-
         return removed
     }
 

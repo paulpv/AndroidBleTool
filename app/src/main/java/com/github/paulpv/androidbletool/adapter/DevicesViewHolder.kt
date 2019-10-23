@@ -28,10 +28,10 @@ class DevicesViewHolder internal constructor(itemView: ViewGroup) :
         val bleDevice = scanResult.bleDevice
 
         labelAddress.text = bleDevice.macAddress
-        labelAge.text = String.format(Locale.getDefault(), "age=%+04d", item.ageMillis)
-        labelTimeoutRemaining.text = String.format(Locale.getDefault(), "timeout=%+04d", item.timeoutRemainingMillis)
+        labelAge.text = String.format(Locale.getDefault(), "age=%d", item.ageMillis)
+        labelTimeoutRemaining.text = String.format(Locale.getDefault(), "remain=%d", item.timeoutRemainingMillis)
         labelName.text = bleDevice.name
-        labelRssiReal.text = String.format(Locale.getDefault(), "real=%+04d", signalStrengthRealtime)
-        labelRssiAverage.text = String.format(Locale.getDefault(), "avg=%+04d", signalStrengthSmoothed)
+        labelRssiReal.text = String.format(Locale.getDefault(), "real=%04d", signalStrengthRealtime)
+        labelRssiAverage.text = String.format(Locale.getDefault(), "avg=%04d", signalStrengthSmoothed)
     }
 }
