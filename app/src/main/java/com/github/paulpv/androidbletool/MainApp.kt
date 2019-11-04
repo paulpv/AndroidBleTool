@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.os.Looper
 import com.github.paulpv.androidbletool.BleTool.BleToolConfiguration
+import com.polidea.rxandroidble2.scan.ScanFilter
 
 class MainApp : Application(), BleTool.BleToolApplication {
 
@@ -23,6 +24,9 @@ class MainApp : Application(), BleTool.BleToolApplication {
                 get() = null
             override val scanningNotificationActivityClass: Class<out Activity>
                 get() = MainActivity::class.java
+
+            override fun getScanFilters(scanFilters: MutableList<ScanFilter>) {
+            }
         }
 
         _bleTool = BleTool(bleToolConfiguration)

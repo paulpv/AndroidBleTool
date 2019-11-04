@@ -10,6 +10,10 @@ import java.util.*
 
 class DevicesViewHolder internal constructor(itemView: ViewGroup) :
     BindableViewHolder<ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>>(itemView) {
+    //companion object {
+    //    private val TAG = Utils.TAG(DevicesViewHolder::class.java)
+    //}
+
     private val labelAddress: TextView = itemView.findViewById(R.id.labelAddress)
     private val labelAge: TextView = itemView.findViewById(R.id.labelAge)
     private val labelTimeoutRemaining: TextView = itemView.findViewById(R.id.labelTimeoutRemaining)
@@ -28,8 +32,8 @@ class DevicesViewHolder internal constructor(itemView: ViewGroup) :
         val bleDevice = scanResult.bleDevice
 
         labelAddress.text = bleDevice.macAddress
-        labelAge.text = String.format(Locale.getDefault(), "age=%d", item.ageMillis)
-        labelTimeoutRemaining.text = String.format(Locale.getDefault(), "remain=%d", item.timeoutRemainingMillis)
+        labelAge.text = String.format(Locale.getDefault(), "age=%.3fs", item.ageMillis / 1000.0)
+        labelTimeoutRemaining.text = String.format(Locale.getDefault(), "remain=%.3fs", item.timeoutRemainingMillis / 1000.0)
         labelName.text = bleDevice.name
         labelRssiReal.text = String.format(Locale.getDefault(), "real=%04d", signalStrengthRealtime)
         labelRssiAverage.text = String.format(Locale.getDefault(), "avg=%04d", signalStrengthSmoothed)

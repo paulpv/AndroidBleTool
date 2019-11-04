@@ -58,6 +58,16 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        devicesAdapter?.onResume()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        devicesAdapter?.onPause()
+    }
+
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_activity, menu)
 

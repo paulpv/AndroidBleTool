@@ -34,7 +34,11 @@ public class ReflectionUtils {
         if (Utils.Companion.isNullOrEmpty(className)) {
             className = "null";
         }
-        return shortClassName ? className.substring(className.lastIndexOf('.') + 1) : className;
+        if (shortClassName) {
+            className = className.substring(className.lastIndexOf('.') + 1);
+            className = className.substring(className.lastIndexOf('$') + 1);
+        }
+        return className;
     }
 
     public static String getShortClassName(String className) {

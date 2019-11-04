@@ -29,15 +29,21 @@ public class ExpiringIterableLongSparseArray<V> {
 
     public interface ItemWrapper<V> {
         long getKey();
+
         V getValue();
+
         long getAddedUptimeMillis();
+
         long getAgeMillis();
+
         long getTimeoutMillis();
+
         long getTimeoutRemainingMillis();
     }
 
     /**
      * Adds internal "update" method to ItemWrapper
+     *
      * @param <V>
      */
     public static class ItemWrapperImpl<V> implements ItemWrapper<V> {
@@ -51,6 +57,19 @@ public class ExpiringIterableLongSparseArray<V> {
             mKey = key;
             mAddedUptimeMillis = SystemClock.uptimeMillis();
             update(value, timeoutMillis);
+        }
+
+        @NonNull
+        @Override
+        public String toString() {
+            return ReflectionUtils.getShortClassName(this) + "@" + Integer.toHexString(hashCode()) +
+                    "{ getKey()=" + getKey() +
+                    ", getValue()=" + getValue() +
+                    ", getAddedUptimeMillis()=" + getAddedUptimeMillis() +
+                    ", getAgeMillis()=" + getAgeMillis() +
+                    ", getTimeoutMillis()=" + getTimeoutMillis() +
+                    ", getTimeoutRemainingMillis()=" + getTimeoutRemainingMillis() +
+                    " }";
         }
 
         void update(V value, long timeoutMillis) {

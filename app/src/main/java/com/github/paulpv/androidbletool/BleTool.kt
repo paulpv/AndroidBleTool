@@ -65,6 +65,8 @@ class BleTool(private val configuration: BleToolConfiguration) {
          * May be calculated dynamically
          */
         val scanningNotificationActivityClass: Class<out Activity>
+
+        fun getScanFilters(scanFilters: MutableList<ScanFilter>)
     }
 
     interface BleToolApplication {
@@ -832,6 +834,15 @@ class BleTool(private val configuration: BleToolConfiguration) {
         }
     }
 
+    private fun getScanFilters(): Array<ScanFilter> {
+        val scanFilters = mutableListOf<ScanFilter>()
+        configuration.getScanFilters(scanFilters)
+        if (scanFilters.size == 0) {
+            scanFilters.add(ScanFilter.empty())
+        }
+        return scanFilters.toTypedArray()
+    }
+
     /*
      * Does *NOT* check for Permissions!
      */
@@ -849,23 +860,20 @@ class BleTool(private val configuration: BleToolConfiguration) {
                         .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
                         .build()
 
-                    val scanFilter = ScanFilter.Builder()
-                        // add custom filters if needed
-                        //...
-                        .build()
+                    val scanFilters = getScanFilters()
 
                     if (USE_SCAN_API_VERSION >= 26) {
                         Log.i(TAG, "persistentScanningResume: USE_API_VERSION >= 26; Start background scan")
                         rxBleClient.backgroundScanner.scanBleDeviceInBackground(
                             callbackIntent,
                             scanSettings,
-                            scanFilter
+                            *scanFilters
                         )
                         persistentScanningBackgroundPid = MY_PID
                     } else {
                         Log.i(TAG, "persistentScanningResume: USE_API_VERSION < 26; Start non-background scan")
                         // TODO:(pv) Scan internally for 3.1 seconds on 3.1 seconds off?
-                        foregroundScanDisposable = rxBleClient.scanBleDevices(scanSettings, scanFilter)
+                        foregroundScanDisposable = rxBleClient.scanBleDevices(scanSettings, *scanFilters)
                             .observeOn(AndroidSchedulers.mainThread())
                             //.doFinally { dispose() }
                             .subscribe({ processScanResult(it) }, { onScanError(it) })
