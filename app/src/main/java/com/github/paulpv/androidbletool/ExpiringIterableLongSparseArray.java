@@ -38,6 +38,10 @@ public class ExpiringIterableLongSparseArray<V> {
 
         long getTimeoutMillis();
 
+        long getUpdateUptimeMillis();
+
+        long getUpdateElapsedMillis();
+
         long getTimeoutRemainingMillis();
     }
 
@@ -52,6 +56,7 @@ public class ExpiringIterableLongSparseArray<V> {
 
         private V mValue;
         private long mTimeoutMillis;
+        private long mUpdatedUptimeMillis;
 
         public ItemWrapperImpl(long key, V value, long timeoutMillis) {
             mKey = key;
@@ -73,6 +78,7 @@ public class ExpiringIterableLongSparseArray<V> {
         }
 
         void update(V value, long timeoutMillis) {
+            mUpdatedUptimeMillis = SystemClock.uptimeMillis();
             mValue = value;
             mTimeoutMillis = timeoutMillis;
         }
@@ -103,8 +109,18 @@ public class ExpiringIterableLongSparseArray<V> {
         }
 
         @Override
+        public long getUpdateUptimeMillis() {
+            return mUpdatedUptimeMillis;
+        }
+
+        @Override
+        public long getUpdateElapsedMillis() {
+            return SystemClock.uptimeMillis() - mUpdatedUptimeMillis;
+        }
+
+        @Override
         public long getTimeoutRemainingMillis() {
-            return mTimeoutMillis - getAgeMillis();
+            return mTimeoutMillis - getUpdateElapsedMillis();
         }
     }
 

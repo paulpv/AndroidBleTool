@@ -88,6 +88,7 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
                         if (!bleTool?.persistentScanningEnable(isChecked)!!) {
                             buttonView.isChecked = false
                         }
+                        devicesAdapter!!.autoUpdateVisibleItems(isChecked)
                     }
                 }
             }
@@ -152,24 +153,18 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
     }
 
     override fun onDeviceAdded(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>) {
-        val scanResult = item.value
-        Log.e(TAG, "onDeviceAdded: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} scanResult=${scanResult}")
-        //val device = MyBleDevice(scanResult)
+        Log.w(TAG, "  onDeviceAdded: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} item=${item}")
         devicesAdapter!!.put(item)
         text_scan_count.text = String.format(Locale.getDefault(), "(%d)", devicesAdapter!!.itemCount)
     }
 
     override fun onDeviceUpdated(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>) {
-        val scanResult = item.value
-        Log.w(TAG, "onDeviceUpdated: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} scanResult=${scanResult}")
-        //val device = MyBleDevice(scanResult)
+        //Log.w(TAG, "onDeviceUpdated: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} item=${item}")
         devicesAdapter!!.put(item)
     }
 
     override fun onDeviceRemoved(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>) {
-        val scanResult = item.value
-        Log.e(TAG, "onDeviceRemoved: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} scanResult=${scanResult}")
-        //val device = MyBleDevice(scanResult)
+        Log.w(TAG, "onDeviceRemoved: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} item=${item}")
         devicesAdapter!!.remove(item, false)
         text_scan_count.text = String.format(Locale.getDefault(), "(%d)", devicesAdapter!!.itemCount)
     }

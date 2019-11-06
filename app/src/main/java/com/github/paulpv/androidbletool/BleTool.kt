@@ -391,13 +391,13 @@ class BleTool(private val configuration: BleToolConfiguration) {
         }
 
         @Suppress("SimplifyBooleanWithConstants")
-        if (false && BuildConfig.DEBUG) {
+        if (true && BuildConfig.DEBUG) {
             RxBleClient.updateLogOptions(
                 LogOptions.Builder()
-                    .setLogLevel(LogConstants.INFO)
+                    //.setLogLevel(LogConstants.INFO)
                     .setMacAddressLogSetting(LogConstants.MAC_ADDRESS_FULL)
                     .setUuidsLogSetting(LogConstants.UUIDS_FULL)
-                    .setShouldLogAttributeValues(true)
+                    //.setShouldLogAttributeValues(true)
                     .build()
             )
         }

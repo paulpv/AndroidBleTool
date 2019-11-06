@@ -5,7 +5,6 @@ import java.util.*
 
 class SortableSet<E> constructor(comparator: Comparator<in E>? = null) {
     companion object {
-        @Suppress("unused")
         private val TAG = Utils.TAG(SortableSet::class.java)
     }
 
@@ -33,7 +32,7 @@ class SortableSet<E> constructor(comparator: Comparator<in E>? = null) {
      * @return the positive index of the updated element, or the `-index - 1` index of the added element.
      */
     fun add(item: E): Int {
-        //Log.e(TAG, "add(" + PbStringUtils.quote(item) + ')');
+        //Log.e(TAG, "#FOO add(${Utils.quote(item)})")
         val added = mBackingTreeSet!!.add(item)
         val index = indexOfKnownExisting(item)
         return if (added) -index - 1 else index
@@ -48,7 +47,7 @@ class SortableSet<E> constructor(comparator: Comparator<in E>? = null) {
     }
 
     fun getAt(index: Int): E {
-        //Log.e(TAG, "getAt(" + index + ')');
+        //Log.e(TAG, "#FOO getAt($index)")
         return getIteratorAt(index).next()
     }
 
@@ -85,6 +84,7 @@ class SortableSet<E> constructor(comparator: Comparator<in E>? = null) {
 
     @Suppress("unused")
     fun remove(item: E): Int {
+        //Log.e(TAG, "#FOO getAt($item)")
         //
         // TODO:(pv) Use a removal strategy depending on the sort type
         //  Example: Knowing that we are tracking BLE devices, removals are typically going to happen because
@@ -102,16 +102,15 @@ class SortableSet<E> constructor(comparator: Comparator<in E>? = null) {
         while (it.hasNext()) {
             if (it.next() === item) {
                 it.remove()
-
                 return i
             }
-
             ++i
         }
         return -1
     }
 
     fun removeAt(index: Int): E {
+        //Log.e(TAG, "#FOO removeAt($index)")
         val it = getIteratorAt(index)
         val item = it.next()
         it.remove()

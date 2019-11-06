@@ -93,16 +93,16 @@ abstract class SortableAdapter<S : Enum<*>, T, VH : BindableViewHolder<T>> inter
     fun clear() {
         lastRemovedItem = null
         val size = itemCount
-        //Log.e(TAG, "clear: size=$size");
-        //Log.e(TAG, "clear: mItems.clear()");
+        //Log.e(TAG, "clear: size=$size")
+        //Log.e(TAG, "clear: mItems.clear()")
         items.clear()
-        //Log.e(TAG, "clear: notifyItemRangeRemoved(0, $size)');
+        //Log.e(TAG, "clear: notifyItemRangeRemoved(0, $size)')
         notifyItemRangeRemoved(0, size)
     }
 
     private fun getItemFromHolder(holder: BindableViewHolder<*>): T {
         return getItemByIndex(holder.adapterPosition)
-        //return getItemByIndex(holder.getLayoutPosition());//.getAdapterPosition());
+        //return getItemByIndex(holder.getLayoutPosition())//.getAdapterPosition())
     }
 
     @Suppress("MemberVisibilityCanBePrivate")
@@ -111,15 +111,15 @@ abstract class SortableAdapter<S : Enum<*>, T, VH : BindableViewHolder<T>> inter
     }
 
     fun put(item: T): Int {
-        //Log.e(TAG, "put(item=$item)");
+        Log.e(TAG, "#FOO put(item=$item)")
         var position = items.add(item)
-        //Log.e(TAG, "put: position == $position");
+        //Log.e(TAG, "#FOO put: position == $position")
         if (position > -1) {
-            //Log.e(TAG, "put: notifyItemChanged(position=$position)");
+            Log.e(TAG, "#FOO put: notifyItemChanged(position=$position)")
             notifyItemChanged(position)
         } else {
             position = -position - 1
-            //Log.e(TAG, "put: notifyItemInserted(position=$position)");
+            Log.e(TAG, "#FOO put: notifyItemInserted(position=$position)")
             notifyItemInserted(position)
         }
         return position
@@ -131,15 +131,16 @@ abstract class SortableAdapter<S : Enum<*>, T, VH : BindableViewHolder<T>> inter
      * @return the item that was removed, or null if no item was removed
      */
     fun remove(item: T, allowUndo: Boolean): T? {
-        //Log.e(TAG, "remove(item=$item, allowUndo=$allowUndo)");
+        //Log.e(TAG, "#FOO remove(item=$item, allowUndo=$allowUndo)")
         val position = items.indexOf(item)
         if (position < 0) {
-            //Log.e(TAG, "remove: position($position) < 0; ignoring");
+            //Log.e(TAG, "#FOO remove: position($position) < 0; ignoring")
             return null
         }
-        //Log.e(TAG, "remove: mItems.removeAt(position=$position)");
+        //Log.e(TAG, "#FOO remove: mItems.removeAt(position=$position)")
         val removed = items.removeAt(position)
-        //Log.e(TAG, "remove: notifyItemRemoved(position=$position)");
+        //Log.e(TAG, "#FOO remove: removed=$removed")
+        //Log.e(TAG, "#FOO remove: notifyItemRemoved(position=$position)")
         notifyItemRemoved(position)
         if (allowUndo) {
             lastRemovedItem = removed

@@ -3,6 +3,7 @@ package com.github.paulpv.androidbletool.adapter
 import android.view.View.OnClickListener
 import android.view.ViewGroup
 import android.widget.TextView
+import com.github.paulpv.androidbletool.BuildConfig
 import com.github.paulpv.androidbletool.ExpiringIterableLongSparseArray
 import com.github.paulpv.androidbletool.R
 import com.polidea.rxandroidble2.scan.ScanResult
@@ -32,8 +33,11 @@ class DevicesViewHolder internal constructor(itemView: ViewGroup) :
         val bleDevice = scanResult.bleDevice
 
         labelAddress.text = bleDevice.macAddress
-        labelAge.text = String.format(Locale.getDefault(), "age=%.3fs", item.ageMillis / 1000.0)
-        labelTimeoutRemaining.text = String.format(Locale.getDefault(), "remain=%.3fs", item.timeoutRemainingMillis / 1000.0)
+        val simplified = !(false && BuildConfig.DEBUG)
+        labelAge.text = if (simplified) String.format(Locale.getDefault(), "age=%ds", item.ageMillis / 1000)
+        else String.format(Locale.getDefault(), "age=%.3fs", item.ageMillis / 1000.0)
+        labelTimeoutRemaining.text = if (simplified) String.format(Locale.getDefault(), "remain=%ds", item.timeoutRemainingMillis / 1000)
+        else String.format(Locale.getDefault(), "remain=%.3fs", item.timeoutRemainingMillis / 1000.0)
         labelName.text = bleDevice.name
         labelRssiReal.text = String.format(Locale.getDefault(), "real=%04d", signalStrengthRealtime)
         labelRssiAverage.text = String.format(Locale.getDefault(), "avg=%04d", signalStrengthSmoothed)
