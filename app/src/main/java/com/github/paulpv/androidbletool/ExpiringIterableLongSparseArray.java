@@ -1,7 +1,6 @@
 package com.github.paulpv.androidbletool;
 
 import android.os.Handler;
-import android.os.Handler.Callback;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
@@ -9,6 +8,7 @@ import android.os.SystemClock;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -24,12 +24,18 @@ public class ExpiringIterableLongSparseArray<V> {
     private static final boolean VERBOSE_LOG_UPDATE = false;
     private static final boolean VERBOSE_LOG_EXPIRE = false;
     private static final boolean VERBOSE_LOG_REMOVE = false;
+    private static final boolean VERBOSE_LOG_EQUALS_AND_HASHCODE = false;
 
     public static final int DEFAULT_EXPIRATION_TIMEOUT_MILLIS = 30 * 1000;
 
     public interface ItemWrapper<V> {
-        long getKey();
+        @NonNull
+        String toString(boolean verbose);
 
+        @NonNull
+        Long getKey();
+
+        @NonNull
         V getValue();
 
         long getAddedUptimeMillis();
@@ -51,14 +57,17 @@ public class ExpiringIterableLongSparseArray<V> {
      * @param <V>
      */
     public static class ItemWrapperImpl<V> implements ItemWrapper<V> {
+        private static final String TAG = Utils.Companion.TAG(ItemWrapperImpl.class);
+
         private final Long mKey;
         private final long mAddedUptimeMillis;
 
+        @NonNull
         private V mValue;
         private long mTimeoutMillis;
         private long mUpdatedUptimeMillis;
 
-        public ItemWrapperImpl(long key, V value, long timeoutMillis) {
+        public ItemWrapperImpl(long key, @NonNull V value, long timeoutMillis) {
             mKey = key;
             mAddedUptimeMillis = SystemClock.uptimeMillis();
             update(value, timeoutMillis);
@@ -67,14 +76,53 @@ public class ExpiringIterableLongSparseArray<V> {
         @NonNull
         @Override
         public String toString() {
-            return ReflectionUtils.getShortClassName(this) + "@" + Integer.toHexString(hashCode()) +
-                    "{ getKey()=" + getKey() +
-                    ", getValue()=" + getValue() +
-                    ", getAddedUptimeMillis()=" + getAddedUptimeMillis() +
-                    ", getAgeMillis()=" + getAgeMillis() +
-                    ", getTimeoutMillis()=" + getTimeoutMillis() +
-                    ", getTimeoutRemainingMillis()=" + getTimeoutRemainingMillis() +
-                    " }";
+            return toString(true);
+        }
+
+        @NonNull
+        @Override
+        public String toString(boolean verbose) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(ReflectionUtils.getShortClassName(this))
+                    .append("@").append(Integer.toHexString(hashCode()))
+                    .append("{ ");
+            if (verbose) {
+                sb
+                        .append("getKey()=").append(getKey())
+                        .append(", getValue()=").append(getValue())
+                        .append(", getAddedUptimeMillis()=").append(getAddedUptimeMillis())
+                        .append(", getAgeMillis()=").append(getAgeMillis())
+                        .append(", getTimeoutMillis()=").append(getTimeoutMillis())
+                        .append(", getTimeoutRemainingMillis()=").append(getTimeoutRemainingMillis());
+            } else {
+                sb
+                        .append("k=").append(getKey())
+                        .append(", v=").append(getValue());
+            }
+            return sb.append(" }")
+                    .toString();
+        }
+
+        @Override
+        public boolean equals(@Nullable Object obj) {
+            String s = obj instanceof ItemWrapperImpl ? ((ItemWrapperImpl) obj).toString(false) : obj != null ? obj.toString() : "null";
+            if (VERBOSE_LOG_EQUALS_AND_HASHCODE) {
+                Log.e(TAG, "equals(" + s + "); this=" + this.toString(false));
+            }
+            boolean result = obj instanceof ItemWrapperImpl && ((ItemWrapperImpl) obj).getKey() == getKey();
+            if (VERBOSE_LOG_EQUALS_AND_HASHCODE) {
+                Log.e(TAG, "equals: result=" + result);
+            }
+            return result;
+        }
+
+        @Override
+        public int hashCode() {
+            int hashCode = getValue().hashCode();
+            if (VERBOSE_LOG_EQUALS_AND_HASHCODE) {
+                Log.e(TAG, "hashCode: hashCode=" + hashCode);
+            }
+            return hashCode;
         }
 
         void update(V value, long timeoutMillis) {
@@ -83,11 +131,13 @@ public class ExpiringIterableLongSparseArray<V> {
             mTimeoutMillis = timeoutMillis;
         }
 
+        @NonNull
         @Override
-        public long getKey() {
+        public Long getKey() {
             return mKey;
         }
 
+        @NonNull
         @Override
         public V getValue() {
             return mValue;
@@ -211,25 +261,14 @@ public class ExpiringIterableLongSparseArray<V> {
 
         mName = name;
         mSyncLock = syncLock;
-        mListeners = new ListenerManager<>(name + ".mListeners");
+        mListeners = new ListenerManager<>("\"" + name + "\".mListeners");
 
-        mHandlerMain = new Handler(looper, new Callback() {
-            @Override
-            public boolean handleMessage(Message msg) {
-                return ExpiringIterableLongSparseArray.this.handleMessage(msg);
-            }
-        });
+        mHandlerMain = new Handler(looper, ExpiringIterableLongSparseArray.this::handleMessage);
 
-        HandlerThread handlerThreadBackground = new HandlerThread(
-                "\"" + name + "\".mHandlerBackground");
+        HandlerThread handlerThreadBackground = new HandlerThread("\"" + name + "\".mHandlerBackground");
         handlerThreadBackground.start();
         Looper looperBackground = handlerThreadBackground.getLooper();
-        mHandlerBackground = new Handler(looperBackground, new Callback() {
-            @Override
-            public boolean handleMessage(Message msg) {
-                return ExpiringIterableLongSparseArray.this.handleMessage(msg);
-            }
-        });
+        mHandlerBackground = new Handler(looperBackground, ExpiringIterableLongSparseArray.this::handleMessage);
 
         mMapItems = new IterableLongSparseArray<>();
 
@@ -278,15 +317,13 @@ public class ExpiringIterableLongSparseArray<V> {
 
     private boolean handleMessage(Message msg) {
         // We [currently] only have one message, ExpireItem; no need to switch on msg.what
-
         Long key = (Long) msg.obj;
-
         if (msg.getTarget() == mHandlerMain) {
             itemExpire(key);
         } else {
+            // mHandlerBackground: Forward it to mHandlerMain
             obtainAndSendMessage(mHandlerMain, msg.what, key);
         }
-
         return false;
     }
 
@@ -299,8 +336,7 @@ public class ExpiringIterableLongSparseArray<V> {
     private void itemExpirationStop(String callerName, ItemWrapper<V> itemWrapper) {
         Object obj = itemWrapper.getKey();
         if (VERBOSE_LOG_EXPIRE) {
-            Log.v(TAG, '#' + mName + ' ' + callerName +
-                    "->itemExpirationStop: mHandler.removeMessages(Messages.ExpireKey, obj=" + obj + ')');
+            Log.v(TAG, '#' + mName + ' ' + callerName + "->itemExpirationStop: mHandlerBackground.removeMessages(Messages.ExpireKey, obj=Object@" + obj.hashCode() + "{" + obj + "})");
         }
         mHandlerBackground.removeMessages(Messages.ExpireItem, obj);
     }
@@ -319,9 +355,7 @@ public class ExpiringIterableLongSparseArray<V> {
         if (timeoutRemainingMillis > 0) {
             Long obj = itemWrapper.getKey();
             if (VERBOSE_LOG_EXPIRE) {
-                Log.v(TAG, '#' + mName + ' ' + callerName +
-                        "->itemExpirationStart: mHandler.obtainAndSendMessageDelayed(Messages.ExpireKey, obj=" +
-                        obj + ", delayMillis=" + timeoutRemainingMillis + ')');
+                Log.v(TAG, '#' + mName + ' ' + callerName + "->itemExpirationStart: mHandlerBackground.obtainAndSendMessageDelayed(Messages.ExpireKey, obj=Object@" + obj.hashCode() + "{" + obj + "}, delayMillis=" + timeoutRemainingMillis + ')');
             }
             obtainAndSendMessageDelayed(mHandlerBackground, Messages.ExpireItem, obj, timeoutRemainingMillis);
         }
@@ -384,7 +418,7 @@ public class ExpiringIterableLongSparseArray<V> {
      * Should only be called from inside of a synchronized (mSyncLock) block
      */
     private void itemExpirationsClearAll() {
-        Log.v(TAG, '#' + mName + " itemExpirationsClearAll: mHandler.removeCallbacksAndMessages(null)");
+        Log.v(TAG, '#' + mName + " itemExpirationsClearAll: mHandlerBackground.removeCallbacksAndMessages(null)");
         mHandlerBackground.removeCallbacksAndMessages(null);
     }
 
@@ -716,21 +750,21 @@ public class ExpiringIterableLongSparseArray<V> {
         }
     }
 
-    public Iterator<V> iterateValues() {
+    public Iterator<ItemWrapper<V>> iterateValues() {
         synchronized (mSyncLock) {
-            return new ExpiringIterableLongSparseArrayValuesIterator<>(this);
+            return new ExpiringIterableLongSparseArrayValuesIterator<>(mMapItems);
         }
     }
 
     private static final class ExpiringIterableLongSparseArrayValuesIterator<V>
-            implements Iterator<V> {
-        private final ExpiringIterableLongSparseArray<V> mArray;
+            implements Iterator<ItemWrapper<V>> {
+        private final IterableLongSparseArray<ItemWrapperImpl<V>> mMapItems;
 
         private int mIndex;
         private boolean mCanRemove;
 
-        private ExpiringIterableLongSparseArrayValuesIterator(ExpiringIterableLongSparseArray<V> array) {
-            mArray = array;
+        private ExpiringIterableLongSparseArrayValuesIterator(IterableLongSparseArray<ItemWrapperImpl<V>> mapItems) {
+            mMapItems = mapItems;
         }
 
         @Override
@@ -738,11 +772,11 @@ public class ExpiringIterableLongSparseArray<V> {
             //
             // NOTE:(pv) mArray.size() causes mArray.gc() to be called
             //
-            return mIndex < mArray.size();
+            return mIndex < mMapItems.size();
         }
 
         @Override
-        public V next() {
+        public ItemWrapper<V> next() {
             //if (mArray.mName != null)
             //{
             //    Log.e(TAG, '#' + mArray.mName + " next(): " + mArray);
@@ -755,7 +789,7 @@ public class ExpiringIterableLongSparseArray<V> {
                 //
                 // NOTE:(pv) mArray.valueAt(...) causes mArray.gc() to be called
                 //
-                return mArray.valueAt(mIndex++);
+                return mMapItems.valueAt(mIndex++);
             } else {
                 throw new NoSuchElementException("No more elements");
             }
@@ -769,7 +803,7 @@ public class ExpiringIterableLongSparseArray<V> {
             //}
             if (mCanRemove) {
                 mCanRemove = false;
-                mArray.removeAt(--mIndex);
+                mMapItems.removeAt(--mIndex);
             } else {
                 throw new IllegalStateException("next() must be called");
             }
