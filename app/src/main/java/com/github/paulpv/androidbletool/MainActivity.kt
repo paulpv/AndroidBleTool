@@ -13,8 +13,7 @@ import androidx.core.app.NavUtils
 import com.github.paulpv.androidbletool.adapter.DevicesAdapter
 import com.github.paulpv.androidbletool.adapter.SortBy
 import com.github.paulpv.androidbletool.adapter.SortableAdapter
-import com.polidea.rxandroidble2.exceptions.BleScanException
-import com.polidea.rxandroidble2.scan.ScanResult
+import com.github.paulpv.androidbletool.exceptions.BleScanException
 import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
 
@@ -27,6 +26,9 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
     private var devicesAdapter: DevicesAdapter? = null
 
     private var bleTool: BleTool? = null
+
+    private val isPersistentScanningEnabled: Boolean
+        get() = bleTool!!.isPersistentScanningEnabled
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,8 +48,8 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
         }
 
         devicesAdapter = DevicesAdapter(this)
-        devicesAdapter!!.setEventListener(object : SortableAdapter.EventListener<ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>> {
-            override fun onItemSelected(item: ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>) {
+        devicesAdapter!!.setEventListener(object : SortableAdapter.EventListener<ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>> {
+            override fun onItemSelected(item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) {
                 Log.e(TAG, "onItemSelected: TODO:(pv) do something w/ $item!")
             }
         })
@@ -60,7 +62,7 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
 
     override fun onResume() {
         super.onResume()
-        devicesAdapter?.onResume()
+        devicesAdapter?.onResume(bleTool!!.recentlyNearbyDevicesIterator)//, isPersistentScanningEnabled)
     }
 
     override fun onPause() {
@@ -83,7 +85,7 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
                 }
                 switchScan = actionView.findViewById(R.id.action_switch_control)
                 if (switchScan != null) {
-                    switchScan!!.isChecked = bleTool!!.isPersistentScanningEnabled
+                    switchScan!!.isChecked = isPersistentScanningEnabled
                     switchScan!!.setOnCheckedChangeListener { buttonView, isChecked ->
                         if (!bleTool?.persistentScanningEnable(isChecked)!!) {
                             buttonView.isChecked = false
@@ -152,20 +154,20 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
         return false
     }
 
-    override fun onDeviceAdded(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>) {
+    override fun onDeviceAdded(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) {
         Log.w(TAG, "  onDeviceAdded: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} item=${item}")
-        devicesAdapter!!.put(item)
+        devicesAdapter!!.put(item, notify = true)
         text_scan_count.text = String.format(Locale.getDefault(), "(%d)", devicesAdapter!!.itemCount)
     }
 
-    override fun onDeviceUpdated(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>) {
+    override fun onDeviceUpdated(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) {
         //Log.w(TAG, "onDeviceUpdated: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} item=${item}")
-        devicesAdapter!!.put(item)
+        devicesAdapter!!.put(item, notify = true)
     }
 
-    override fun onDeviceRemoved(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>) {
+    override fun onDeviceRemoved(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) {
         Log.w(TAG, "onDeviceRemoved: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} item=${item}")
-        devicesAdapter!!.remove(item, false)
+        devicesAdapter!!.remove(item, notify = true, allowUndo = false)
         text_scan_count.text = String.format(Locale.getDefault(), "(%d)", devicesAdapter!!.itemCount)
     }
 }

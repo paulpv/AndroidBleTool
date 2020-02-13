@@ -1,16 +1,19 @@
 package com.github.paulpv.androidbletool.adapter
 
+import android.annotation.SuppressLint
+import android.content.Context
 import android.view.View.OnClickListener
 import android.view.ViewGroup
 import android.widget.TextView
-import com.github.paulpv.androidbletool.BuildConfig
+import com.github.paulpv.androidbletool.BleScanResult
 import com.github.paulpv.androidbletool.ExpiringIterableLongSparseArray
 import com.github.paulpv.androidbletool.R
-import com.polidea.rxandroidble2.scan.ScanResult
+import com.github.paulpv.androidbletool.Utils
 import java.util.*
 
-class DevicesViewHolder internal constructor(itemView: ViewGroup) :
-    BindableViewHolder<ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>>(itemView) {
+class DevicesViewHolder(val context: Context, itemView: ViewGroup) :
+    BindableViewHolder<ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>>(itemView) {
+
     //companion object {
     //    private val TAG = Utils.TAG(DevicesViewHolder::class.java)
     //}
@@ -22,22 +25,24 @@ class DevicesViewHolder internal constructor(itemView: ViewGroup) :
     private val labelRssiReal: TextView = itemView.findViewById(R.id.labelRssiReal)
     private val labelRssiAverage: TextView = itemView.findViewById(R.id.labelRssiAverage)
 
-    override fun bindTo(item: ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>, clickListener: OnClickListener) {
+    @SuppressLint("SetTextI18n")
+    override fun bindTo(item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>, clickListener: OnClickListener) {
         super.bindTo(item, clickListener)
 
-        val scanResult = item.value
+        val bleScanResult = item.value
+        val scanResult = bleScanResult.scanResult
 
         val signalStrengthRealtime = scanResult.rssi
-        val signalStrengthSmoothed = -1//item.signalLevelRssiSmoothed
+        val signalStrengthSmoothed = bleScanResult.rssiSmoothed
 
-        val bleDevice = scanResult.bleDevice
+        val bleDevice = scanResult.device
 
-        labelAddress.text = bleDevice.macAddress
-        val simplified = !(false && BuildConfig.DEBUG)
-        labelAge.text = if (simplified) String.format(Locale.getDefault(), "age=%ds", item.ageMillis / 1000)
-        else String.format(Locale.getDefault(), "age=%.3fs", item.ageMillis / 1000.0)
-        labelTimeoutRemaining.text = if (simplified) String.format(Locale.getDefault(), "remain=%ds", item.timeoutRemainingMillis / 1000)
-        else String.format(Locale.getDefault(), "remain=%.3fs", item.timeoutRemainingMillis / 1000.0)
+        labelAddress.text = bleDevice.address
+
+        //@Suppress("SimplifyBooleanWithConstants") val simplified = !(false && BuildConfig.DEBUG)
+
+        labelAge.text = "age=${Utils.getTimeDurationFormattedString(item.ageMillis)}"
+        labelTimeoutRemaining.text = "remain=${Utils.getTimeDurationFormattedString(item.timeoutRemainingMillis)}"
         labelName.text = bleDevice.name
         labelRssiReal.text = String.format(Locale.getDefault(), "real=%04d", signalStrengthRealtime)
         labelRssiAverage.text = String.format(Locale.getDefault(), "avg=%04d", signalStrengthSmoothed)

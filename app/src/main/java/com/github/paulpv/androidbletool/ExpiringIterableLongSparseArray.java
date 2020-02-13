@@ -24,7 +24,8 @@ public class ExpiringIterableLongSparseArray<V> {
     private static final boolean VERBOSE_LOG_UPDATE = false;
     private static final boolean VERBOSE_LOG_EXPIRE = false;
     private static final boolean VERBOSE_LOG_REMOVE = false;
-    private static final boolean VERBOSE_LOG_EQUALS_AND_HASHCODE = false;
+    private static final boolean VERBOSE_LOG_EQUALS = false;
+    private static final boolean VERBOSE_LOG_HASHCODE = false;
 
     public static final int DEFAULT_EXPIRATION_TIMEOUT_MILLIS = 30 * 1000;
 
@@ -62,6 +63,7 @@ public class ExpiringIterableLongSparseArray<V> {
         private final Long mKey;
         private final long mAddedUptimeMillis;
 
+        @SuppressWarnings("NullableProblems")
         @NonNull
         private V mValue;
         private long mTimeoutMillis;
@@ -86,9 +88,10 @@ public class ExpiringIterableLongSparseArray<V> {
             sb.append(ReflectionUtils.getShortClassName(this))
                     .append("@").append(Integer.toHexString(hashCode()))
                     .append("{ ");
+            Long key = getKey();
             if (verbose) {
                 sb
-                        .append("getKey()=").append(getKey())
+                        .append("getKey()=Long@").append(key.hashCode()).append('{').append(key).append('}')
                         .append(", getValue()=").append(getValue())
                         .append(", getAddedUptimeMillis()=").append(getAddedUptimeMillis())
                         .append(", getAgeMillis()=").append(getAgeMillis())
@@ -96,7 +99,7 @@ public class ExpiringIterableLongSparseArray<V> {
                         .append(", getTimeoutRemainingMillis()=").append(getTimeoutRemainingMillis());
             } else {
                 sb
-                        .append("k=").append(getKey())
+                        .append("k=").append(key)
                         .append(", v=").append(getValue());
             }
             return sb.append(" }")
@@ -106,11 +109,11 @@ public class ExpiringIterableLongSparseArray<V> {
         @Override
         public boolean equals(@Nullable Object obj) {
             String s = obj instanceof ItemWrapperImpl ? ((ItemWrapperImpl) obj).toString(false) : obj != null ? obj.toString() : "null";
-            if (VERBOSE_LOG_EQUALS_AND_HASHCODE) {
+            if (VERBOSE_LOG_EQUALS) {
                 Log.e(TAG, "equals(" + s + "); this=" + this.toString(false));
             }
-            boolean result = obj instanceof ItemWrapperImpl && ((ItemWrapperImpl) obj).getKey() == getKey();
-            if (VERBOSE_LOG_EQUALS_AND_HASHCODE) {
+            boolean result = obj instanceof ItemWrapperImpl && ((ItemWrapperImpl) obj).getKey().longValue() == getKey().longValue();
+            if (VERBOSE_LOG_EQUALS) {
                 Log.e(TAG, "equals: result=" + result);
             }
             return result;
@@ -119,7 +122,7 @@ public class ExpiringIterableLongSparseArray<V> {
         @Override
         public int hashCode() {
             int hashCode = getValue().hashCode();
-            if (VERBOSE_LOG_EQUALS_AND_HASHCODE) {
+            if (VERBOSE_LOG_HASHCODE) {
                 Log.e(TAG, "hashCode: hashCode=" + hashCode);
             }
             return hashCode;

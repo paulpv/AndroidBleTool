@@ -4,47 +4,82 @@ import android.content.Context
 import android.view.ViewGroup
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.github.paulpv.androidbletool.BluetoothUtils
+import com.github.paulpv.androidbletool.BleScanResult
 import com.github.paulpv.androidbletool.ExpiringIterableLongSparseArray
 import com.github.paulpv.androidbletool.R
-import com.polidea.rxandroidble2.scan.ScanResult
 import java.util.*
 
 class DevicesAdapter(context: Context) :
-    SortableAdapter<SortBy, ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>, DevicesViewHolder>(context, SortBy.SignalLevelRssi) {
+    SortableAdapter<SortBy, ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>, DevicesViewHolder>(context, SortBy.SignalLevelRssi) {
 
     companion object {
-        private val SORT_BY_ADDRESS = Comparator<ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>> { obj1, obj2 ->
-            BluetoothUtils.macAddressStringToPrettyString(obj1.value.bleDevice.macAddress)
-                .compareTo(BluetoothUtils.macAddressStringToPrettyString(obj2.value.bleDevice.macAddress))
-        }
+        //private val TAG = Utils.TAG(DevicesAdapter::class.java)
 
-        private val SORT_BY_NAME = Comparator<ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>> { obj1, obj2 ->
-            val result = (obj1.value.bleDevice.name ?: "").compareTo(obj2.value.bleDevice.name ?: "")
-            if (result != 0) result else SORT_BY_ADDRESS.compare(obj1, obj2)
-        }
+        private val SORT_BY_ADDRESS =
+            Comparator<ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>>(fun(
+                obj1: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>,
+                obj2: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>
+            ): Int {
+                return obj1.value.scanResult.device.address.compareTo(obj2.value.scanResult.device.address)
+            })
 
-        private val SORT_BY_STRENGTH = Comparator<ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>> { obj1, obj2 ->
-            //
-            // NOTE: Intentionally inverted to initially sort RSSIs **descending**.
-            //
-            val result = obj2.value.rssi.compareTo(obj1.value.rssi)
-            if (result != 0) result else SORT_BY_ADDRESS.compare(obj1, obj2)
-        }
+        private val SORT_BY_NAME =
+            Comparator<ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>>(fun(
+                obj1: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>,
+                obj2: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>
+            ): Int {
+                val resultAddress = SORT_BY_ADDRESS.compare(obj1, obj2)
+                if (resultAddress == 0) return 0
+                val result = (obj1.value.scanResult.device.name ?: "").compareTo(obj2.value.scanResult.device.name ?: "")
+                return if (result != 0) result else resultAddress
+            })
 
-        private val SORT_BY_AGE = Comparator<ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>> { obj1, obj2 ->
-            val result = obj1.ageMillis.compareTo(obj2.ageMillis)
-            if (result != 0) result else SORT_BY_ADDRESS.compare(obj1, obj2)
-        }
+        private val SORT_BY_STRENGTH =
+            Comparator<ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>>(fun(
+                obj1: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>,
+                obj2: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>
+            ): Int {
+                //Log.e(TAG, "#FOO SORT_BY_STRENGTH obj1=${obj1.toString(false)}")
+                //Log.e(TAG, "#FOO SORT_BY_STRENGTH obj2=${obj2.toString(false)}")
+                val resultAddress = SORT_BY_ADDRESS.compare(obj1, obj2)
+                //Log.e(TAG, "#FOO SORT_BY_STRENGTH resultAddress=$resultAddress")
+                if (resultAddress == 0) return 0
+                //
+                // NOTE: Intentionally inverted to initially sort RSSIs **descending**.
+                //
+                val resultStrength = obj2.value.rssi.compareTo(obj1.value.rssi)
+                //Log.e(TAG, "#FOO SORT_BY_STRENGTH resultStrength=$resultStrength")
+                //val result = if (resultAddress == 0) 0 else if (resultStrength != 0) resultStrength else resultAddress
+                val result = if (resultStrength != 0) resultStrength else resultAddress
+                //Log.e(TAG, "#FOO SORT_BY_STRENGTH result=$result")
+                return result
+            })
 
-        private val SORT_BY_TIMEOUT_REMAINING = Comparator<ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>> { obj1, obj2 ->
-            val result = obj1.timeoutRemainingMillis.compareTo(obj2.timeoutRemainingMillis)
-            if (result != 0) result else SORT_BY_ADDRESS.compare(obj1, obj2)
-        }
+        private val SORT_BY_AGE =
+            Comparator<ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>>(fun(
+                obj1: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>,
+                obj2: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>
+            ): Int {
+                val resultAddress = SORT_BY_ADDRESS.compare(obj1, obj2)
+                if (resultAddress == 0) return 0
+                val result = obj1.ageMillis.compareTo(obj2.ageMillis)
+                return if (result != 0) result else resultAddress
+            })
+
+        private val SORT_BY_TIMEOUT_REMAINING =
+            Comparator<ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>>(fun(
+                obj1: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>,
+                obj2: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>
+            ): Int {
+                val resultAddress = SORT_BY_ADDRESS.compare(obj1, obj2)
+                if (resultAddress == 0) return 0
+                val result = obj1.timeoutRemainingMillis.compareTo(obj2.timeoutRemainingMillis)
+                return if (result != 0) result else resultAddress
+            })
     }
 
-    override fun getComparator(sortBy: SortBy?, reversed: Boolean): Comparator<ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>> {
-        val comparator: Comparator<ExpiringIterableLongSparseArray.ItemWrapper<ScanResult>> = when (sortBy) {
+    override fun getComparator(sortBy: SortBy?, reversed: Boolean): Comparator<ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>> {
+        val comparator: Comparator<ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>> = when (sortBy) {
             SortBy.Address -> SORT_BY_ADDRESS
             SortBy.Name -> SORT_BY_NAME
             SortBy.SignalLevelRssi -> SORT_BY_STRENGTH
@@ -58,7 +93,7 @@ class DevicesAdapter(context: Context) :
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DevicesViewHolder {
         //Log.e(TAG, "onCreateViewHolder(...)")
         val viewGroup = inflate(R.layout.device_cell, parent) as ViewGroup
-        return DevicesViewHolder(viewGroup)
+        return DevicesViewHolder(context, viewGroup)
     }
 
     private var recyclerView: RecyclerView? = null
@@ -83,7 +118,7 @@ class DevicesAdapter(context: Context) :
         autoUpdateVisibleItems(true)
     }
 
-    public fun autoUpdateVisibleItems(enable: Boolean) {
+    fun autoUpdateVisibleItems(enable: Boolean) {
         //Log.e(TAG, "refreshVisibleItems($enable)")
         if (enable) {
             val positionStart = layoutManager?.findFirstVisibleItemPosition() ?: RecyclerView.NO_POSITION
@@ -100,8 +135,15 @@ class DevicesAdapter(context: Context) :
         }
     }
 
-    fun onResume() {
-        autoUpdateVisibleItems(true)
+    /**
+     * Items could have changed while the UI was not visible; rebuild it
+     */
+    fun onResume(iterator: Iterator<ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>>) {//, autoUpdate: Boolean) {
+        clear()
+        iterator.forEach {
+            put(it, false)
+        }
+        notifyItemRangeInserted(0, itemCount)
     }
 
     fun onPause() {

@@ -2,9 +2,8 @@ package com.github.paulpv.androidbletool
 
 import android.app.Activity
 import android.app.Application
-import android.os.Looper
+import android.bluetooth.le.ScanFilter
 import com.github.paulpv.androidbletool.BleTool.BleToolConfiguration
-import com.polidea.rxandroidble2.scan.ScanFilter
 
 class MainApp : Application(), BleTool.BleToolApplication {
 
@@ -18,17 +17,18 @@ class MainApp : Application(), BleTool.BleToolApplication {
         super.onCreate()
 
         bleToolConfiguration = object : BleToolConfiguration {
-            override val application: Application
-                get() = this@MainApp
-            override val looper: Looper?
-                get() = null
             override val scanningNotificationActivityClass: Class<out Activity>
                 get() = MainActivity::class.java
 
-            override fun getScanFilters(scanFilters: MutableList<ScanFilter>) {
+            override fun addScanFilters(scanFilters: MutableList<ScanFilter>) {
+                scanFilters.add(
+                    ScanFilter.Builder()
+                        .setDeviceName("FNDR")
+                        .build()
+                )
             }
         }
 
-        _bleTool = BleTool(bleToolConfiguration)
+        _bleTool = BleTool(this, bleToolConfiguration)
     }
 }

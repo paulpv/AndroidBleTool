@@ -4,6 +4,21 @@
     package="com.github.paulpv.androidbletool"
     >
 
+    <!--
+    Per https://developer.android.com/guide/topics/connectivity/bluetooth#Permissions
+    -->
+    <uses-permission android:name="android.permission.BLUETOOTH"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+
+    <!--
+    Needed for scanning in the background
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+
+    <!--
+    Needed to resume scanning after reboot
+    -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
@@ -24,6 +39,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".DeviceActivity" />
 
         <service android:name=".BleTool$NotificationService" />
 

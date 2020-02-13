@@ -3,8 +3,8 @@ package com.github.paulpv.androidbletool
 import android.app.Activity
 import android.util.Log
 import androidx.annotation.StringRes
+import com.github.paulpv.androidbletool.exceptions.BleScanException
 import com.google.android.material.snackbar.Snackbar
-import com.polidea.rxandroidble2.exceptions.BleScanException
 import java.util.*
 import java.util.concurrent.TimeUnit
 

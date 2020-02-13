@@ -16,7 +16,7 @@ import java.util.*
  * @param <T>  Item type to sort
  * @param <VH> ViewHolder type for Item
 </VH></T></S> */
-abstract class SortableAdapter<S : Enum<*>, T, VH : BindableViewHolder<T>> internal constructor(context: Context, initialSortBy: S?) :
+abstract class SortableAdapter<S : Enum<*>, T, VH : BindableViewHolder<T>> (val context: Context, initialSortBy: S?) :
     RecyclerView.Adapter<VH>() {
     companion object {
         private val TAG = Utils.TAG(SortableAdapter::class.java)
@@ -58,6 +58,7 @@ abstract class SortableAdapter<S : Enum<*>, T, VH : BindableViewHolder<T>> inter
         itemViewOnClickListener = View.OnClickListener { this@SortableAdapter.onItemClicked(it) }
         items = SortableSet()
         sortBy = initialSortBy
+        //setHasStableIds(true)
     }
 
     fun setEventListener(eventListener: EventListener<T>) {
@@ -91,6 +92,7 @@ abstract class SortableAdapter<S : Enum<*>, T, VH : BindableViewHolder<T>> inter
     }
 
     fun clear() {
+        Log.e(TAG, "clear()")
         lastRemovedItem = null
         val size = itemCount
         //Log.e(TAG, "clear: size=$size")
@@ -110,17 +112,19 @@ abstract class SortableAdapter<S : Enum<*>, T, VH : BindableViewHolder<T>> inter
         return items.getAt(index)
     }
 
-    fun put(item: T): Int {
-        Log.e(TAG, "#FOO put(item=$item)")
+    fun put(item: T, notify: Boolean = true): Int {
+        //Log.e(TAG, "#FOO put(item=${(item as ExpiringIterableLongSparseArray.ItemWrapperImpl<*>).toString(false)}, notify=$notify)")
         var position = items.add(item)
-        //Log.e(TAG, "#FOO put: position == $position")
-        if (position > -1) {
-            Log.e(TAG, "#FOO put: notifyItemChanged(position=$position)")
-            notifyItemChanged(position)
-        } else {
-            position = -position - 1
-            Log.e(TAG, "#FOO put: notifyItemInserted(position=$position)")
-            notifyItemInserted(position)
+        //Log.e(TAG, "#FOO put: position=$position, itemCount=$itemCount")
+        if (notify) {
+            if (position > -1) {
+                //Log.e(TAG, "#FOO put: notifyItemChanged(position=$position)")
+                notifyItemChanged(position)
+            } else {
+                position = -position - 1
+                //Log.e(TAG, "#FOO put: notifyItemInserted(position=$position)")
+                notifyItemInserted(position)
+            }
         }
         return position
     }
@@ -130,8 +134,8 @@ abstract class SortableAdapter<S : Enum<*>, T, VH : BindableViewHolder<T>> inter
      * @param allowUndo true to allow the item to be restored in [.undoLastRemove]
      * @return the item that was removed, or null if no item was removed
      */
-    fun remove(item: T, allowUndo: Boolean): T? {
-        //Log.e(TAG, "#FOO remove(item=$item, allowUndo=$allowUndo)")
+    fun remove(item: T, notify: Boolean = true, allowUndo: Boolean): T? {
+        //Log.e(TAG, "#FOO remove(item=$item, notify=$notify, allowUndo=$allowUndo)")
         val position = items.indexOf(item)
         if (position < 0) {
             //Log.e(TAG, "#FOO remove: position($position) < 0; ignoring")
@@ -140,8 +144,10 @@ abstract class SortableAdapter<S : Enum<*>, T, VH : BindableViewHolder<T>> inter
         //Log.e(TAG, "#FOO remove: mItems.removeAt(position=$position)")
         val removed = items.removeAt(position)
         //Log.e(TAG, "#FOO remove: removed=$removed")
-        //Log.e(TAG, "#FOO remove: notifyItemRemoved(position=$position)")
-        notifyItemRemoved(position)
+        if (notify) {
+            //Log.e(TAG, "#FOO remove: notifyItemRemoved(position=$position)")
+            notifyItemRemoved(position)
+        }
         if (allowUndo) {
             lastRemovedItem = removed
         }

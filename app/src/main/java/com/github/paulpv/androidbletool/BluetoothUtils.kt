@@ -6,6 +6,8 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.BluetoothLeAdvertiser
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -198,5 +200,40 @@ class BluetoothUtils {
             }
             return "$name($bluetoothAdapterState)"
         }
+
+        fun callbackTypeToString(callbackType: Int): String {
+            val text = when (callbackType) {
+                ScanSettings.CALLBACK_TYPE_FIRST_MATCH -> "CALLBACK_TYPE_FIRST_MATCH"
+                ScanSettings.CALLBACK_TYPE_MATCH_LOST -> "CALLBACK_TYPE_MATCH_LOST"
+                ScanSettings.CALLBACK_TYPE_ALL_MATCHES -> "CALLBACK_TYPE_ALL_MATCHES"
+                else -> "CALLBACK_TYPE_UNKNOWN"
+            }
+            return "$text($callbackType)"
+        }
+
+        /**
+         * From hidden @see ScanCallback#SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES
+         */
+        const val SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES = 5
+
+        /**
+         * From hidden @see ScanCallback#SCAN_FAILED_SCANNING_TOO_FREQUENTLY
+         */
+        const val SCAN_FAILED_SCANNING_TOO_FREQUENTLY = 6
+
+        fun scanErrorCodeToString(errorCode: Int): String {
+            val message = when (errorCode) {
+                ScanCallback.SCAN_FAILED_ALREADY_STARTED -> "SCAN_FAILED_ALREADY_STARTED"
+                ScanCallback.SCAN_FAILED_APPLICATION_REGISTRATION_FAILED -> "SCAN_FAILED_APPLICATION_REGISTRATION_FAILED"
+                ScanCallback.SCAN_FAILED_INTERNAL_ERROR -> "SCAN_FAILED_INTERNAL_ERROR"
+                ScanCallback.SCAN_FAILED_FEATURE_UNSUPPORTED -> "SCAN_FAILED_FEATURE_UNSUPPORTED"
+                SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES -> "SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES"
+                SCAN_FAILED_SCANNING_TOO_FREQUENTLY -> "SCAN_FAILED_SCANNING_TOO_FREQUENTLY"
+                else -> "SCAN_FAILED_UNKNOWN"
+            }
+            return "$message($errorCode)"
+        }
+
+        class BleScanThrowable(@Suppress("MemberVisibilityCanBePrivate", "CanBeParameter") val errorCode: Int) : Throwable(scanErrorCodeToString(errorCode))
     }
 }

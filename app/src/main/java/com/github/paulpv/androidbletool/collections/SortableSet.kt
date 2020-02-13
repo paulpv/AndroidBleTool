@@ -1,5 +1,6 @@
 package com.github.paulpv.androidbletool.collections
 
+import com.github.paulpv.androidbletool.ExpiringIterableLongSparseArray
 import com.github.paulpv.androidbletool.Utils
 import java.util.*
 
@@ -27,6 +28,29 @@ class SortableSet<E> constructor(comparator: Comparator<in E>? = null) {
         mBackingTreeSet = newTreeSet
     }
 
+    fun indexOf(item: E): Int {
+        return mBackingTreeSet!!.indexOf(item)
+    }
+
+    private fun itemsToString(): String {
+        val sb = StringBuilder()
+            .append("[")
+        getIteratorAt(0).forEach {
+            sb.append("\n")
+            if (it is ExpiringIterableLongSparseArray.ItemWrapperImpl<*>) {
+                sb.append(it.toString(false))
+            } else {
+                sb.append(it)
+            }
+            sb.append(", ")
+        }
+        if (size() > 0) {
+            sb.append("\n")
+        }
+        return sb.append("]")
+            .toString()
+    }
+
     /**
      * @param item
      * @return the positive index of the updated element, or the `-index - 1` index of the added element.
@@ -52,34 +76,19 @@ class SortableSet<E> constructor(comparator: Comparator<in E>? = null) {
     }
 
     private fun getIteratorAt(index: Int): MutableIterator<E> {
+        @Suppress("NAME_SHADOWING") var index = index
         if (index < 0) {
             throw IndexOutOfBoundsException("index must be >= 0")
         }
         val size = size()
-        if (index >= size) {
-            throw IndexOutOfBoundsException("index must be < size()")
+        if (index != 0 && index >= size) {
+            throw IndexOutOfBoundsException("index must be < size() or 0")
         }
-        var count: Int
-        val it: MutableIterator<E> = if (index < size / 2) {
-            count = index
-            mBackingTreeSet!!.iterator()
-        } else {
-            count = size - 1 - index
-            mBackingTreeSet!!.descendingIterator()
-        }
-        while (count > 0) {
+        val it = mBackingTreeSet!!.iterator()
+        while (index-- > 0) {
             it.next()
-            --count
         }
         return it
-    }
-
-    fun indexOf(item: E): Int {
-        return if (mBackingTreeSet!!.contains(item)) indexOfKnownExisting(item) else -1
-    }
-
-    private fun indexOfKnownExisting(item: E): Int {
-        return mBackingTreeSet!!.headSet(item).size
     }
 
     @Suppress("unused")
