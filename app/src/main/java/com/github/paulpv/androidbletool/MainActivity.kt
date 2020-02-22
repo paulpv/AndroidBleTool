@@ -1,5 +1,6 @@
 package com.github.paulpv.androidbletool
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
@@ -10,12 +11,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
 import androidx.appcompat.widget.Toolbar
 import androidx.core.app.NavUtils
+import androidx.recyclerview.widget.DividerItemDecoration
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.github.paulpv.androidbletool.adapter.DeviceInfo
 import com.github.paulpv.androidbletool.adapter.DevicesAdapter
 import com.github.paulpv.androidbletool.adapter.SortBy
-import com.github.paulpv.androidbletool.adapter.SortableAdapter
 import com.github.paulpv.androidbletool.exceptions.BleScanException
 import kotlinx.android.synthetic.main.activity_main.*
-import java.util.*
 
 class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
     companion object {
@@ -47,13 +49,18 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
             }
         }
 
-        devicesAdapter = DevicesAdapter(this)
-        devicesAdapter!!.setEventListener(object : SortableAdapter.EventListener<ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>> {
-            override fun onItemSelected(item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) {
+        devicesAdapter = DevicesAdapter(this, SortBy.SignalLevelRssi)
+        devicesAdapter!!.setEventListener(object : DevicesAdapter.EventListener<DeviceInfo> {
+            override fun onItemSelected(item: DeviceInfo) {
                 Log.e(TAG, "onItemSelected: TODO:(pv) do something w/ $item!")
             }
         })
+
+        val layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
+        val dividerItemDecoration = DividerItemDecoration(this, layoutManager.orientation)
         with(scan_results) {
+            setLayoutManager(layoutManager)
+            addItemDecoration(dividerItemDecoration)
             setHasFixedSize(true)
             itemAnimator = null
             adapter = devicesAdapter
@@ -62,13 +69,17 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
 
     override fun onResume() {
         super.onResume()
-        devicesAdapter?.onResume(bleTool!!.recentlyNearbyDevicesIterator)//, isPersistentScanningEnabled)
+        devicesAdapter?.onResume(bleTool!!.recentlyNearbyDevicesIterator, isPersistentScanningEnabled)
     }
 
     override fun onPause() {
         super.onPause()
         devicesAdapter?.onPause()
     }
+
+    //
+    //region Menu stuff...
+    //
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_activity, menu)
@@ -145,6 +156,10 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
         return super.onOptionsItemSelected(item)
     }
 
+    //
+    //endregion
+    //
+
     override fun onDeviceScanError(bleTool: BleTool, e: Throwable): Boolean {
         Log.e(TAG, "onError: e=$e")
         when (e) {
@@ -154,20 +169,25 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
         return false
     }
 
+    @SuppressLint("SetTextI18n")
+    private fun updateScanCount() {
+        text_scan_count.text = "(${devicesAdapter!!.itemCount})"
+    }
+
     override fun onDeviceAdded(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) {
         Log.w(TAG, "  onDeviceAdded: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} item=${item}")
-        devicesAdapter!!.put(item, notify = true)
-        text_scan_count.text = String.format(Locale.getDefault(), "(%d)", devicesAdapter!!.itemCount)
+        devicesAdapter!!.add(item)//, notify = true)
+        updateScanCount()
     }
 
     override fun onDeviceUpdated(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) {
-        //Log.w(TAG, "onDeviceUpdated: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} item=${item}")
-        devicesAdapter!!.put(item, notify = true)
+        Log.w(TAG, "onDeviceUpdated: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} item=${item}")
+        devicesAdapter!!.add(item)//, notify = true)
     }
 
     override fun onDeviceRemoved(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) {
         Log.w(TAG, "onDeviceRemoved: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} item=${item}")
-        devicesAdapter!!.remove(item, notify = true, allowUndo = false)
-        text_scan_count.text = String.format(Locale.getDefault(), "(%d)", devicesAdapter!!.itemCount)
+        devicesAdapter!!.remove(item)//, notify = true, allowUndo = false)
+        updateScanCount()
     }
 }

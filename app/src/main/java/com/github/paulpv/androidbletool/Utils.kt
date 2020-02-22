@@ -3,6 +3,7 @@ package com.github.paulpv.androidbletool
 import android.content.Intent
 import android.os.Bundle
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 @Suppress("MemberVisibilityCanBePrivate")
 class Utils {
@@ -259,29 +260,53 @@ class Utils {
         }
 
         /**
-         * @param msElapsed msElapsed
+         * @param elapsedMillis elapsedMillis
+         * @param maximumTimeUnit maximumTimeUnit
          * @return HH:MM:SS.MMM
          */
-        fun getTimeDurationFormattedString(msElapsed: Long): String {
-            @Suppress("NAME_SHADOWING") var msElapsed = msElapsed
-            var h: Long = 0
-            var m: Long = 0
-            var s: Long = 0
-            if (msElapsed > 0) {
-                h = (msElapsed / (3600 * 1000)).toInt().toLong()
-                msElapsed -= h * 3600 * 1000
-                m = (msElapsed / (60 * 1000)).toInt().toLong()
-                msElapsed -= m * 60 * 1000
-                s = (msElapsed / 1000).toInt().toLong()
-                msElapsed -= s * 1000
-            } else {
-                msElapsed = 0
+        fun getTimeDurationFormattedString(elapsedMillis: Long, maximumTimeUnit: TimeUnit? = null): String {
+            @Suppress("NAME_SHADOWING") var elapsedMillis = elapsedMillis
+            @Suppress("NAME_SHADOWING") var maximumTimeUnit = maximumTimeUnit
+            if (maximumTimeUnit == null) {
+                maximumTimeUnit = TimeUnit.HOURS
             }
-
-            return formatNumber(h, 2) + ":" +
-                    formatNumber(m, 2) + ":" +
-                    formatNumber(s, 2) + "." +
-                    formatNumber(msElapsed, 3)
+            if (maximumTimeUnit > TimeUnit.DAYS) {
+                throw IllegalArgumentException("maximumTimeUnit must be null or <= TimeUnit.DAYS")
+            }
+            if (maximumTimeUnit < TimeUnit.MILLISECONDS) {
+                throw IllegalArgumentException("maximumTimeUnit must be null or >= TimeUnit.MILLISECONDS")
+            }
+            val sb = StringBuilder()
+            if (maximumTimeUnit >= TimeUnit.DAYS) {
+                val days = TimeUnit.MILLISECONDS.toDays(elapsedMillis)
+                sb.append(formatNumber(days, 2)).append(':')
+                if (days > 0) {
+                    elapsedMillis -= TimeUnit.DAYS.toMillis(days)
+                }
+            }
+            if (maximumTimeUnit >= TimeUnit.HOURS) {
+                val hours = TimeUnit.MILLISECONDS.toHours(elapsedMillis)
+                sb.append(formatNumber(hours, 2)).append(':')
+                if (hours > 0) {
+                    elapsedMillis -= TimeUnit.HOURS.toMillis(hours)
+                }
+            }
+            if (maximumTimeUnit >= TimeUnit.MINUTES) {
+                val minutes = TimeUnit.MILLISECONDS.toMinutes(elapsedMillis)
+                sb.append(formatNumber(minutes, 2)).append(':')
+                if (minutes > 0) {
+                    elapsedMillis -= TimeUnit.MINUTES.toMillis(minutes)
+                }
+            }
+            if (maximumTimeUnit >= TimeUnit.SECONDS) {
+                val seconds = TimeUnit.MILLISECONDS.toSeconds(elapsedMillis)
+                sb.append(formatNumber(seconds, 2)).append('.')
+                if (seconds > 0) {
+                    elapsedMillis -= TimeUnit.SECONDS.toMillis(seconds)
+                }
+            }
+            sb.append(formatNumber(elapsedMillis, 3))
+            return sb.toString()
         }
     }
 }

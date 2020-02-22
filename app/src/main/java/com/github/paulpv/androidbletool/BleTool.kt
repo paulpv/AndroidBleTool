@@ -1202,7 +1202,7 @@ class BleTool(
             val scanResult = bleScanResult.scanResult
             val bleDevice = scanResult.device
             val macAddressString = bleDevice.address
-            val ageMillis = item.ageMillis
+            val ageMillis = item.addedElapsedMillis
             // @formatter:off
             Log.v(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceUpdated: UPDATED! ageMillis=${Utils.getTimeDurationFormattedString(ageMillis)}")
             // @formatter:on

@@ -68,6 +68,15 @@ public class ReflectionUtils {
         return getShortClassName(o) + getMethodName(methodName);
     }
 
+    /**
+     * @param o
+     * @return
+     * @see Object#toString()
+     */
+    public static String defaultToString(Object o) {
+        return (o != null) ? getShortClassName(o) + "@" + Integer.toHexString(o.hashCode()) : "null";
+    }
+
     public static <T> String getInstanceSignature(@NonNull T instance) {
         Runtime.throwIllegalArgumentExceptionIfNull(instance, "instance");
 

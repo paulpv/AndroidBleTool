@@ -24,8 +24,6 @@ public class ExpiringIterableLongSparseArray<V> {
     private static final boolean VERBOSE_LOG_UPDATE = false;
     private static final boolean VERBOSE_LOG_EXPIRE = false;
     private static final boolean VERBOSE_LOG_REMOVE = false;
-    private static final boolean VERBOSE_LOG_EQUALS = false;
-    private static final boolean VERBOSE_LOG_HASHCODE = false;
 
     public static final int DEFAULT_EXPIRATION_TIMEOUT_MILLIS = 30 * 1000;
 
@@ -39,16 +37,36 @@ public class ExpiringIterableLongSparseArray<V> {
         @NonNull
         V getValue();
 
+        /**
+         * @return The SystemClock.uptimeMillis() when this item was first added
+         */
         long getAddedUptimeMillis();
 
-        long getAgeMillis();
+        /**
+         * Also known as the "age" of the item
+         *
+         * @return SystemClock.uptimeMillis() - getAddedUptimeMillis()
+         */
+        long getAddedElapsedMillis();
 
+        /**
+         * @return The constant timeout of this item for it to be removed
+         */
         long getTimeoutMillis();
 
-        long getUpdateUptimeMillis();
+        /**
+         * @return The SystemClock.uptimeMillis() when this item was last updated
+         */
+        long getLastUpdatedUptimeMillis();
 
-        long getUpdateElapsedMillis();
+        /**
+         * @return SystemClock.uptimeMillis() - getUpdatedUptimeMillis()
+         */
+        long getLastUpdatedElapsedMillis();
 
+        /**
+         * @return getTimeoutMillis() - getLastUpdatedElapsedMillis()
+         */
         long getTimeoutRemainingMillis();
     }
 
@@ -59,6 +77,9 @@ public class ExpiringIterableLongSparseArray<V> {
      */
     public static class ItemWrapperImpl<V> implements ItemWrapper<V> {
         private static final String TAG = Utils.Companion.TAG(ItemWrapperImpl.class);
+
+        private static final boolean VERBOSE_LOG_EQUALS = false;
+        private static final boolean VERBOSE_LOG_HASHCODE = false;
 
         private final Long mKey;
         private final long mAddedUptimeMillis;
@@ -75,6 +96,14 @@ public class ExpiringIterableLongSparseArray<V> {
             update(value, timeoutMillis);
         }
 
+        private static String toString(Object obj) {
+            return toString(obj, false);
+        }
+
+        private static String toString(Object obj, boolean verbose) {
+            return obj instanceof ItemWrapperImpl ? ((ItemWrapperImpl) obj).toString(verbose) : obj != null ? obj.toString() : "null";
+        }
+
         @NonNull
         @Override
         public String toString() {
@@ -85,22 +114,22 @@ public class ExpiringIterableLongSparseArray<V> {
         @Override
         public String toString(boolean verbose) {
             StringBuilder sb = new StringBuilder();
-            sb.append(ReflectionUtils.getShortClassName(this))
-                    .append("@").append(Integer.toHexString(hashCode()))
+            sb.append(ReflectionUtils.defaultToString(this))
                     .append("{ ");
             Long key = getKey();
+            V value = getValue();
             if (verbose) {
                 sb
-                        .append("getKey()=Long@").append(key.hashCode()).append('{').append(key).append('}')
-                        .append(", getValue()=").append(getValue())
+                        .append("getKey()=").append(ReflectionUtils.defaultToString(key)).append('{').append(key).append('|').append(Utils.Companion.quote(Long.toHexString(key))).append('}')
+                        .append(", getValue()=").append(toString(value, true))
                         .append(", getAddedUptimeMillis()=").append(getAddedUptimeMillis())
-                        .append(", getAgeMillis()=").append(getAgeMillis())
+                        .append(", getAddedElapsedMillis()=").append(getAddedElapsedMillis())
                         .append(", getTimeoutMillis()=").append(getTimeoutMillis())
                         .append(", getTimeoutRemainingMillis()=").append(getTimeoutRemainingMillis());
             } else {
                 sb
                         .append("k=").append(key)
-                        .append(", v=").append(getValue());
+                        .append(", v=").append(toString(value, false));
             }
             return sb.append(" }")
                     .toString();
@@ -108,9 +137,9 @@ public class ExpiringIterableLongSparseArray<V> {
 
         @Override
         public boolean equals(@Nullable Object obj) {
-            String s = obj instanceof ItemWrapperImpl ? ((ItemWrapperImpl) obj).toString(false) : obj != null ? obj.toString() : "null";
+            String s = toString(obj, false);
             if (VERBOSE_LOG_EQUALS) {
-                Log.e(TAG, "equals(" + s + "); this=" + this.toString(false));
+                Log.e(TAG, "equals(" + s + "); this=" + toString(this, false));
             }
             boolean result = obj instanceof ItemWrapperImpl && ((ItemWrapperImpl) obj).getKey().longValue() == getKey().longValue();
             if (VERBOSE_LOG_EQUALS) {
@@ -123,7 +152,7 @@ public class ExpiringIterableLongSparseArray<V> {
         public int hashCode() {
             int hashCode = getValue().hashCode();
             if (VERBOSE_LOG_HASHCODE) {
-                Log.e(TAG, "hashCode: hashCode=" + hashCode);
+                Log.e(TAG, "hashCode: hashCode=" + Integer.toHexString(hashCode));
             }
             return hashCode;
         }
@@ -152,7 +181,7 @@ public class ExpiringIterableLongSparseArray<V> {
         }
 
         @Override
-        public long getAgeMillis() {
+        public long getAddedElapsedMillis() {
             return SystemClock.uptimeMillis() - mAddedUptimeMillis;
         }
 
@@ -162,18 +191,24 @@ public class ExpiringIterableLongSparseArray<V> {
         }
 
         @Override
-        public long getUpdateUptimeMillis() {
+        public long getLastUpdatedUptimeMillis() {
             return mUpdatedUptimeMillis;
         }
 
         @Override
-        public long getUpdateElapsedMillis() {
+        public long getLastUpdatedElapsedMillis() {
             return SystemClock.uptimeMillis() - mUpdatedUptimeMillis;
         }
 
         @Override
         public long getTimeoutRemainingMillis() {
-            return mTimeoutMillis - getUpdateElapsedMillis();
+            long result = mTimeoutMillis - getLastUpdatedElapsedMillis();
+            /*
+            if (result < 0) {
+                result = 0;
+            }
+            */
+            return result;
         }
     }
 
@@ -352,8 +387,7 @@ public class ExpiringIterableLongSparseArray<V> {
      */
     private void itemExpirationStart(String callerName, ItemWrapper<V> itemWrapper) {
         itemExpirationStop(callerName + "->itemExpirationStart", itemWrapper);
-
-        long ageMillis = itemWrapper.getAgeMillis();
+        //long ageMillis = itemWrapper.getAddedElapsedMillis();
         long timeoutRemainingMillis = itemWrapper.getTimeoutRemainingMillis();
         if (timeoutRemainingMillis > 0) {
             Long obj = itemWrapper.getKey();
@@ -379,7 +413,7 @@ public class ExpiringIterableLongSparseArray<V> {
             ItemWrapper<V> itemWrapper = mMapItems.valueAt(index); // direct
 
             V value = itemWrapper.getValue();
-            long ageMillis = itemWrapper.getAgeMillis();
+            //long ageMillis = itemWrapper.getAddedElapsedMillis();
             long timeoutMillis = itemWrapper.getTimeoutMillis();
 
             if (VERBOSE_LOG_EXPIRE) {
@@ -548,7 +582,7 @@ public class ExpiringIterableLongSparseArray<V> {
 
         long key = itemWrapper.getKey();
         V value = itemWrapper.getValue();
-        long ageMillis = itemWrapper.getAgeMillis();
+        //long ageMillis = itemWrapper.getAddedElapsedMillis();
         long timeoutMillis = itemWrapper.getTimeoutMillis();
 
         synchronized (mListeners) {
@@ -586,7 +620,7 @@ public class ExpiringIterableLongSparseArray<V> {
                 mListeners.endTraversing();
             }
         } else {
-            long ageMillis = itemWrapper.getAgeMillis();
+            //long ageMillis = itemWrapper.getAddedElapsedMillis();
             synchronized (mListeners) {
                 for (ExpiringIterableLongSparseArrayListener<V> listener : mListeners.beginTraversing()) {
                     listener.onItemUpdated(itemWrapper.getKey(), index, itemWrapper);
@@ -599,10 +633,16 @@ public class ExpiringIterableLongSparseArray<V> {
         }
     }
 
+    /**
+     * @see IterableLongSparseArray#get(long)
+     */
     public V get(long key) {
         return get(key, null);
     }
 
+    /**
+     * @see IterableLongSparseArray#get(long, Object)
+     */
     public V get(long key, V valueIfKeyNotFound) {
         V value = valueIfKeyNotFound;
         synchronized (mSyncLock) {
@@ -614,6 +654,9 @@ public class ExpiringIterableLongSparseArray<V> {
         return value;
     }
 
+    /**
+     * @see IterableLongSparseArray#delete(long)
+     */
     public void delete(long key) {
         synchronized (mSyncLock) {
             if (VERBOSE_LOG_REMOVE) {
@@ -623,7 +666,9 @@ public class ExpiringIterableLongSparseArray<V> {
         }
     }
 
-    @SuppressWarnings("UnusedReturnValue")
+    /**
+     * @see IterableLongSparseArray#remove(long)
+     */
     public V remove(long key) {
         synchronized (mSyncLock) {
             if (VERBOSE_LOG_REMOVE) {
@@ -633,6 +678,9 @@ public class ExpiringIterableLongSparseArray<V> {
         }
     }
 
+    /**
+     * @see IterableLongSparseArray#removeAt(int)
+     */
     public V removeAt(int index) {
         return removeAt(index, false);
     }
@@ -654,6 +702,9 @@ public class ExpiringIterableLongSparseArray<V> {
         return value;
     }
 
+    /**
+     * @see IterableLongSparseArray#put(long, Object)
+     */
     public int put(long key, V value) {
         return put(key, value, mDefaultTimeoutMillis);
     }
@@ -681,24 +732,36 @@ public class ExpiringIterableLongSparseArray<V> {
         return index;
     }
 
+    /**
+     * @see IterableLongSparseArray#size()
+     */
     public int size() {
         synchronized (mSyncLock) {
             return mMapItems.size();
         }
     }
 
+    /**
+     * @see IterableLongSparseArray#keyAt(int)
+     */
     public long keyAt(int index) {
         synchronized (mSyncLock) {
             return mMapItems.keyAt(index); // direct
         }
     }
 
+    /**
+     * @see IterableLongSparseArray#valueAt(int)
+     */
     public V valueAt(int index) {
         synchronized (mSyncLock) {
             return mMapItems.valueAt(index).getValue(); // direct
         }
     }
 
+    /**
+     * @see IterableLongSparseArray#setValueAt(int, Object)
+     */
     public void setValueAt(int index, V value) {
         setValueAt(index, value, mDefaultTimeoutMillis);
     }
@@ -716,12 +779,18 @@ public class ExpiringIterableLongSparseArray<V> {
         }
     }
 
+    /**
+     * @see IterableLongSparseArray#indexOfKey(long)
+     */
     public int indexOfKey(long key) {
         synchronized (mSyncLock) {
             return mMapItems.indexOfKey(key); // binarySearch
         }
     }
 
+    /**
+     * @see IterableLongSparseArray#indexOfValue(Object)
+     */
     public int indexOfValue(V value) {
         synchronized (mSyncLock) {
             ItemWrapper<V> itemWrapper;
@@ -735,6 +804,9 @@ public class ExpiringIterableLongSparseArray<V> {
         return -1;
     }
 
+    /**
+     * @see IterableLongSparseArray#clear()
+     */
     public void clear() {
         synchronized (mSyncLock) {
             if (VERBOSE_LOG_CLEAR) {

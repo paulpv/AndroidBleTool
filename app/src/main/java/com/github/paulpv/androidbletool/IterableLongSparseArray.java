@@ -43,7 +43,7 @@ import java.util.Objects;
  * or compacted later in a single garbage collection step of all removed entries.  This garbage collection will need to
  * be performed at any time the array needs to be grown or the the map size or entry values are retrieved.</p>
  */
-public class IterableLongSparseArray<E>
+public class IterableLongSparseArray<V>
         implements Cloneable {
     private static final String TAG = Utils.Companion.TAG("IterableLongSparseArray");
 
@@ -160,11 +160,11 @@ public class IterableLongSparseArray<E>
 
     @Override
     @SuppressWarnings({"unchecked", "CloneDoesntDeclareCloneNotSupportedException"})
-    public IterableLongSparseArray<E> clone() {
-        IterableLongSparseArray<E> clone = null;
+    public IterableLongSparseArray<V> clone() {
+        IterableLongSparseArray<V> clone = null;
         try {
             //noinspection unchecked
-            clone = (IterableLongSparseArray<E>) super.clone();
+            clone = (IterableLongSparseArray<V>) super.clone();
             clone.mKeys = mKeys.clone();
             clone.mValues = mValues.clone();
         } catch (CloneNotSupportedException cnse) {
@@ -180,7 +180,7 @@ public class IterableLongSparseArray<E>
      * @param key key
      * @return value or null
      */
-    public E get(long key) {
+    public V get(long key) {
         return get(key, null);
     }
 
@@ -192,20 +192,20 @@ public class IterableLongSparseArray<E>
      * @param valueIfKeyNotFound valueIfKeyNotFound
      * @return value or valueIfKeyNotFound
      */
-    public E get(long key, E valueIfKeyNotFound) {
+    public V get(long key, V valueIfKeyNotFound) {
         if (mDebugName != null) {
             Log.e(TAG, '#' + mDebugName + " BEFORE get(" + key + "): " + toDebugString());
         }
 
         int i = ContainerHelpers.binarySearch(mKeys, mSize, key);
 
-        E value;
+        V value;
 
         if (i < 0 || mValues[i] == DELETED) {
             value = valueIfKeyNotFound;
         } else {
             //noinspection unchecked
-            value = (E) mValues[i];
+            value = (V) mValues[i];
         }
 
         if (mDebugName != null) {
@@ -240,12 +240,12 @@ public class IterableLongSparseArray<E>
      * @param key key
      * @return the removed value, or null
      */
-    public E remove(long key) {
+    public V remove(long key) {
         if (mDebugName != null) {
             Log.e(TAG, '#' + mDebugName + " BEFORE remove(" + key + "): " + toDebugString());
         }
 
-        E value = null;
+        V value = null;
 
         int index = ContainerHelpers.binarySearch(mKeys, mSize, key);
 
@@ -266,16 +266,16 @@ public class IterableLongSparseArray<E>
      * @param index index
      * @return the removed value, or null
      */
-    public E removeAt(int index) {
+    public V removeAt(int index) {
         if (mDebugName != null) {
             Log.e(TAG, '#' + mDebugName + " BEFORE removeAt(" + index + "): " + toDebugString());
         }
 
-        E value = null;
+        V value = null;
 
         if (mValues[index] != DELETED) {
             //noinspection unchecked
-            value = (E) mValues[index];
+            value = (V) mValues[index];
 
             mValues[index] = DELETED;
             mGarbage = true;
@@ -298,7 +298,7 @@ public class IterableLongSparseArray<E>
      * @param newValue The value to store for the given key.
      * @return Returns true if the value was replaced.
      */
-    public boolean replace(long key, E oldValue, E newValue) {
+    public boolean replace(long key, V oldValue, V newValue) {
         int index = indexOfKey(key);
         if (index >= 0) {
             Object mapValue = mValues[index];
@@ -318,10 +318,10 @@ public class IterableLongSparseArray<E>
      * @return Returns the value that was replaced, otherwise null.
      */
     @Nullable
-    public E replace(long key, E value) {
+    public V replace(long key, V value) {
         int index = indexOfKey(key);
         if (index >= 0) {
-            E oldValue = (E) mValues[index];
+            V oldValue = (V) mValues[index];
             mValues[index] = value;
             return oldValue;
         }
@@ -370,7 +370,7 @@ public class IterableLongSparseArray<E>
      * @return the non-negative index of the updated element, or the negative index which
      * is {@code -index - 1} where of the newly inserted element.
      */
-    public int put(long key, E value) {
+    public int put(long key, V value) {
         if (value == null) {
             throw new IllegalArgumentException("value must not be null");
         }
@@ -497,7 +497,7 @@ public class IterableLongSparseArray<E>
      * @param index index
      * @return value at index
      */
-    public E valueAt(int index) {
+    public V valueAt(int index) {
         if (mDebugName != null) {
             Log.e(TAG, '#' + mDebugName + " BEFORE valueAt(" + index + "): " + toDebugString());
         }
@@ -507,7 +507,7 @@ public class IterableLongSparseArray<E>
         }
 
         //noinspection unchecked
-        E value = (E) mValues[index];
+        V value = (V) mValues[index];
 
         if (mDebugName != null) {
             Log.e(TAG, '#' + mDebugName + "  valueAt(" + index + "): value=" + value);
@@ -525,7 +525,7 @@ public class IterableLongSparseArray<E>
      * @param index index
      * @param value value
      */
-    public void setValueAt(int index, E value) {
+    public void setValueAt(int index, V value) {
         if (value == null) {
             throw new IllegalArgumentException("value must not be null");
         }
@@ -580,7 +580,7 @@ public class IterableLongSparseArray<E>
      * @param value value
      * @return index of value
      */
-    public int indexOfValue(E value) {
+    public int indexOfValue(V value) {
         if (value == null) {
             throw new IllegalArgumentException("value must not be null");
         }
@@ -616,7 +616,7 @@ public class IterableLongSparseArray<E>
     /**
      * Returns true if the specified value is mapped from any key.
      */
-    public boolean containsValue(E value) {
+    public boolean containsValue(V value) {
         return indexOfValue(value) >= 0;
     }
 
@@ -642,7 +642,7 @@ public class IterableLongSparseArray<E>
      * @param key   key
      * @param value value
      */
-    public void append(long key, E value) {
+    public void append(long key, V value) {
         if (value == null) {
             throw new IllegalArgumentException("value must not be null");
         }
@@ -775,7 +775,7 @@ public class IterableLongSparseArray<E>
         return new SparseArrayKeysIterator<>(this);
     }
 
-    public Iterator<E> iterateValues() {
+    public Iterator<V> iterateValues() {
         if (mDebugName != null) {
             Log.e(TAG, '#' + mDebugName + " iterateValues(): " + toDebugString());
         }

@@ -16,7 +16,7 @@ import java.util.*
  * @param <T>  Item type to sort
  * @param <VH> ViewHolder type for Item
 </VH></T></S> */
-abstract class SortableAdapter<S : Enum<*>, T, VH : BindableViewHolder<T>> (val context: Context, initialSortBy: S?) :
+abstract class SortableAdapter<S : Enum<*>, T, VH : BindableViewHolder<T>>(val context: Context, initialSortBy: S?) :
     RecyclerView.Adapter<VH>() {
     companion object {
         private val TAG = Utils.TAG(SortableAdapter::class.java)
@@ -92,7 +92,7 @@ abstract class SortableAdapter<S : Enum<*>, T, VH : BindableViewHolder<T>> (val 
     }
 
     fun clear() {
-        Log.e(TAG, "clear()")
+        Log.i(TAG, "clear()")
         lastRemovedItem = null
         val size = itemCount
         //Log.e(TAG, "clear: size=$size")
@@ -135,17 +135,32 @@ abstract class SortableAdapter<S : Enum<*>, T, VH : BindableViewHolder<T>> (val 
      * @return the item that was removed, or null if no item was removed
      */
     fun remove(item: T, notify: Boolean = true, allowUndo: Boolean): T? {
-        //Log.e(TAG, "#FOO remove(item=$item, notify=$notify, allowUndo=$allowUndo)")
+        @Suppress("ConstantConditionIf")
+        if (LOG_REMOVE) {
+            Log.e(TAG, "#FOO remove(item=$item, notify=$notify, allowUndo=$allowUndo)")
+        }
         val position = items.indexOf(item)
         if (position < 0) {
-            //Log.e(TAG, "#FOO remove: position($position) < 0; ignoring")
+            @Suppress("ConstantConditionIf")
+            if (LOG_REMOVE) {
+                Log.e(TAG, "#FOO remove: position($position) < 0; ignoring")
+            }
             return null
         }
-        //Log.e(TAG, "#FOO remove: mItems.removeAt(position=$position)")
+        @Suppress("ConstantConditionIf")
+        if (LOG_REMOVE) {
+            Log.e(TAG, "#FOO remove: mItems.removeAt(position=$position)")
+        }
         val removed = items.removeAt(position)
-        //Log.e(TAG, "#FOO remove: removed=$removed")
+        @Suppress("ConstantConditionIf")
+        if (LOG_REMOVE) {
+            Log.e(TAG, "#FOO remove: removed=$removed")
+        }
         if (notify) {
-            //Log.e(TAG, "#FOO remove: notifyItemRemoved(position=$position)")
+            @Suppress("ConstantConditionIf")
+            if (LOG_REMOVE) {
+                Log.e(TAG, "#FOO remove: notifyItemRemoved(position=$position)")
+            }
             notifyItemRemoved(position)
         }
         if (allowUndo) {

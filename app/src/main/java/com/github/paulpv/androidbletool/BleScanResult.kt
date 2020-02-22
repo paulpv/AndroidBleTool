@@ -21,8 +21,10 @@ class BleScanResult {
     lateinit var scanResult: ScanResult
         private set
 
+    @Suppress("MemberVisibilityCanBePrivate")
     val macAddressLong: Long
 
+    @Suppress("MemberVisibilityCanBePrivate")
     val rssi: Int
         get() = scanResult.rssi
 
@@ -34,10 +36,9 @@ class BleScanResult {
 
     override fun toString(): String {
         return StringBuilder()
-            .append(ReflectionUtils.getShortClassName(this))
-            .append("@").append(Integer.toHexString(hashCode()))
+            .append(ReflectionUtils.defaultToString(this))
             .append("{ ")
-            .append(" rssi=").append(rssi)
+            .append("rssi=").append(rssi)
             .append(", rssiSmoothed=").append(rssiSmoothed)
             .append(", scanResult=").append(scanResult)
             .append(" }")
@@ -45,11 +46,17 @@ class BleScanResult {
     }
 
     override fun equals(other: Any?): Boolean {
-        return other is BleScanResult && other.macAddressLong == macAddressLong
+        //Log.e(TAG, "#FLAB ${scanResult.device.address} equals(other=$other)")
+        val equals = super.equals(other)
+        //Log.e(TAG, "#FLAB ${scanResult.device.address} equals=$equals")
+        //val equals = other is BleScanResult && other.macAddressLong == macAddressLong
+        return equals
     }
 
     override fun hashCode(): Int {
-        return super.hashCode()
+        val hashCode = super.hashCode()
+        //Log.e(TAG, "#FLAB ${scanResult.device.address} hashCode=$hashCode")
+        return hashCode
     }
 
     fun update(scanResult: ScanResult): Boolean {
