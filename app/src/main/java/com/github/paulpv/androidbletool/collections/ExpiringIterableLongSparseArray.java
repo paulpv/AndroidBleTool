@@ -1,4 +1,4 @@
-package com.github.paulpv.androidbletool;
+package com.github.paulpv.androidbletool.collections;
 
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -9,6 +9,10 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
+import com.github.paulpv.androidbletool.ListenerManager;
+import com.github.paulpv.androidbletool.utils.ReflectionUtils;
+import com.github.paulpv.androidbletool.utils.Utils;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;

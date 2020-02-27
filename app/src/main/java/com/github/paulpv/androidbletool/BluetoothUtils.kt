@@ -12,6 +12,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
+import com.github.paulpv.androidbletool.utils.Utils
 import java.util.*
 
 class BluetoothUtils {

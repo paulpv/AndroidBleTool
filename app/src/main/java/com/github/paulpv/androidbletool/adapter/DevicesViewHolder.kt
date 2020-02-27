@@ -6,7 +6,7 @@ import android.view.View.OnClickListener
 import android.view.ViewGroup
 import android.widget.TextView
 import com.github.paulpv.androidbletool.R
-import com.github.paulpv.androidbletool.Utils
+import com.github.paulpv.androidbletool.utils.Utils
 import java.util.*
 import java.util.concurrent.TimeUnit
 

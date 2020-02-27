@@ -1,4 +1,4 @@
-package com.github.paulpv.androidbletool
+package com.github.paulpv.androidbletool.utils
 
 import android.content.Intent
 import android.os.Bundle
@@ -265,6 +265,8 @@ class Utils {
          * @return HH:MM:SS.MMM
          */
         fun getTimeDurationFormattedString(elapsedMillis: Long, maximumTimeUnit: TimeUnit? = null): String {
+            // TODO:(pv) Get to work for negative values?
+            // TODO:(pv) Handle zero value
             @Suppress("NAME_SHADOWING") var elapsedMillis = elapsedMillis
             @Suppress("NAME_SHADOWING") var maximumTimeUnit = maximumTimeUnit
             if (maximumTimeUnit == null) {

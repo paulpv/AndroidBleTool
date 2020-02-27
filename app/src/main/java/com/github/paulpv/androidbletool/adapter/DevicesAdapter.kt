@@ -9,9 +9,9 @@ import androidx.annotation.LayoutRes
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.github.paulpv.androidbletool.BleScanResult
-import com.github.paulpv.androidbletool.ExpiringIterableLongSparseArray
+import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
 import com.github.paulpv.androidbletool.R
-import com.github.paulpv.androidbletool.Utils
+import com.github.paulpv.androidbletool.utils.Utils
 import com.github.paulpv.androidbletool.collections.SortedList
 import java.util.*
 

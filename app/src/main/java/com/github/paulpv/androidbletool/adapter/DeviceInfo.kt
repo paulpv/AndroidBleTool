@@ -1,9 +1,10 @@
 package com.github.paulpv.androidbletool.adapter
 
 import com.github.paulpv.androidbletool.BleScanResult
-import com.github.paulpv.androidbletool.ExpiringIterableLongSparseArray
-import com.github.paulpv.androidbletool.ReflectionUtils
-import com.github.paulpv.androidbletool.Utils
+import com.github.paulpv.androidbletool.BuildConfig
+import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
+import com.github.paulpv.androidbletool.utils.ReflectionUtils
+import com.github.paulpv.androidbletool.utils.Utils
 
 data class DeviceInfo(
     val macAddress: String,

@@ -1,8 +1,10 @@
-package com.github.paulpv.androidbletool;
+package com.github.paulpv.androidbletool.collections;
 
 import android.util.Log;
 
 import androidx.annotation.Nullable;
+
+import com.github.paulpv.androidbletool.utils.Utils;
 
 import org.jetbrains.annotations.NotNull;
 

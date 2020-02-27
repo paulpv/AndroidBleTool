@@ -25,7 +25,7 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListUpdateCallback;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.github.paulpv.androidbletool.Utils;
+import com.github.paulpv.androidbletool.utils.Utils;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;

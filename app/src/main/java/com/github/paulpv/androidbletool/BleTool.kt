@@ -18,7 +18,10 @@ import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.github.paulpv.androidbletool.BluetoothUtils.Companion.callbackTypeToString
+import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
 import com.github.paulpv.androidbletool.exceptions.BleScanException
+import com.github.paulpv.androidbletool.utils.ReflectionUtils
+import com.github.paulpv.androidbletool.utils.Utils
 import com.livinglifetechway.quickpermissions_kotlin.runWithPermissions
 import com.livinglifetechway.quickpermissions_kotlin.util.PermissionsUtil
 import java.util.concurrent.TimeUnit

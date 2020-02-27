@@ -16,7 +16,9 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.github.paulpv.androidbletool.adapter.DeviceInfo
 import com.github.paulpv.androidbletool.adapter.DevicesAdapter
 import com.github.paulpv.androidbletool.adapter.SortBy
+import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
 import com.github.paulpv.androidbletool.exceptions.BleScanException
+import com.github.paulpv.androidbletool.utils.Utils
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {

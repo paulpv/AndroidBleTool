@@ -1,4 +1,4 @@
-package com.github.paulpv.androidbletool;
+package com.github.paulpv.androidbletool.utils;
 
 import android.util.Log;
 

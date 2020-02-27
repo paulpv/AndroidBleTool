@@ -1,6 +1,9 @@
 package com.github.paulpv.androidbletool
 
 import android.bluetooth.le.ScanResult
+import com.github.paulpv.androidbletool.math.LowPassFilter
+import com.github.paulpv.androidbletool.utils.ReflectionUtils
+import com.github.paulpv.androidbletool.utils.Utils
 
 @Suppress("EqualsOrHashCode")
 class BleScanResult {
