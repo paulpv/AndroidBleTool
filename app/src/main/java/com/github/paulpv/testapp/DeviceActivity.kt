@@ -1,4 +1,4 @@
-package com.github.paulpv.androidbletool
+package com.github.paulpv.testapp
 
 import android.content.Context
 import android.content.Intent

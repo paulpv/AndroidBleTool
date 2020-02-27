@@ -103,6 +103,7 @@ class DevicesAdapter(var context: Context, initialSortBy: SortBy) : RecyclerView
                 // NOTE: Intentionally INVERTED obj2.compareTo(obj1), instead of normal obj1.compareTo(obj2),
                 // to default sort RSSIs **DESCENDING** (greatest to least).
                 //
+                //...
                 //val resultStrength = o2.signalStrengthSmoothed - o1.signalStrengthSmoothed
                 val resultStrength = o2.signalStrengthSmoothed.compareTo(o1.signalStrengthSmoothed)
                 @Suppress("ConstantConditionIf")
@@ -436,6 +437,12 @@ class DevicesAdapter(var context: Context, initialSortBy: SortBy) : RecyclerView
         sortBy = initialSortBy
     }
 
+    /*
+    private inline fun <reified T : DeviceInfo> newSortedList(callback: SortedListAdapterCallback<T>): SortedList<T> {
+        return SortedList(T::class.java, callback)
+    }
+    */
+
     /**
      * Convenience method for [LayoutInflater.from].[LayoutInflater.inflate]
      */
@@ -547,39 +554,52 @@ class DevicesAdapter(var context: Context, initialSortBy: SortBy) : RecyclerView
             Log.e(TAG, "add: BEFORE items($itemCount)=${itemsToString(items)}")
         }
 
-        @Suppress("ConstantConditionIf")
-        if (LOG_ADD) {
-            Log.e(TAG, "add: indexExisting = findIndexByMacAddress(${deviceInfo.macAddress})")
-        }
-        val indexExisting = findIndexByMacAddress(deviceInfo.macAddress)
-        @Suppress("ConstantConditionIf")
-        if (LOG_ADD) {
-            Log.e(TAG, "add: indexExisting=$indexExisting")
-        }
-
-        val indexAdded = if (indexExisting == SortedList.INVALID_POSITION) {
+        if (false) {
             @Suppress("ConstantConditionIf")
             if (LOG_ADD) {
                 Log.e(TAG, "add: items.add($deviceInfo)")
             }
-            items.add(deviceInfo)
+            val indexAdded = items.add(deviceInfo)
+            @Suppress("ConstantConditionIf")
+            if (LOG_ADD) {
+                Log.e(TAG, "add: indexAdded=$indexAdded")
+            }
+            return indexAdded
         } else {
             @Suppress("ConstantConditionIf")
             if (LOG_ADD) {
-                Log.e(TAG, "add: items.updateItemAt($indexExisting, $deviceInfo)")
+                Log.e(TAG, "add: indexExisting = findIndexByMacAddress(${deviceInfo.macAddress})")
             }
-            // NOTE:(pv) Only re-sorts if compare != 0 !!!
-            items.updateItemAt(indexExisting, deviceInfo)
-            indexExisting
-        }
+            val indexExisting = findIndexByMacAddress(deviceInfo.macAddress)
+            @Suppress("ConstantConditionIf")
+            if (LOG_ADD) {
+                Log.e(TAG, "add: indexExisting=$indexExisting")
+            }
 
-        @Suppress("ConstantConditionIf")
-        if (LOG_ADD) {
-            Log.e(TAG, "add: AFTER items($itemCount)=${itemsToString(items)}")
-            Log.e(TAG, "\n\n")
-        }
+            val indexAdded = if (indexExisting == SortedList.INVALID_POSITION) {
+                @Suppress("ConstantConditionIf")
+                if (LOG_ADD) {
+                    Log.e(TAG, "add: items.add($deviceInfo)")
+                }
+                items.add(deviceInfo)
+            } else {
+                @Suppress("ConstantConditionIf")
+                if (LOG_ADD) {
+                    Log.e(TAG, "add: items.updateItemAt($indexExisting, $deviceInfo)")
+                }
+                // NOTE:(pv) Only re-sorts if compare != 0 !!!
+                items.updateItemAt(indexExisting, deviceInfo)
+                indexExisting
+            }
 
-        return indexAdded
+            @Suppress("ConstantConditionIf")
+            if (LOG_ADD) {
+                Log.e(TAG, "add: AFTER items($itemCount)=${itemsToString(items)}")
+                Log.e(TAG, "\n\n")
+            }
+
+            return indexAdded
+        }
     }
 
     fun remove(item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>): Boolean {

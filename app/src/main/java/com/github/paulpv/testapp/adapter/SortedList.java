@@ -265,6 +265,7 @@ public class SortedList<T> {
             mCallback.onInserted(0, newSize);
         } else {
             merge(newItems, newSize);
+            //merge(newItems, newSize, true);
         }
     }
 
@@ -347,6 +348,19 @@ public class SortedList<T> {
         mCallback.onRemoved(mNewDataStart, 1);
     }
 
+    /*
+    public void sort() {
+        sort(mData);
+        // TODO:(pv) Fire appropriate mCallback...
+    }
+    */
+
+    /*
+    private Comparator<T>[] getComparators() {
+        return mCallback.getComparators();
+    }
+     */
+
     private String toString(T[] items) {
         StringBuilder sb = new StringBuilder()
                 .append('[');
@@ -360,10 +374,20 @@ public class SortedList<T> {
         return sb.append(']').toString();
     }
 
+    /**
+     * https://stackoverflow.com/a/15240794/252308
+     * "There is a well-known trick for sorting by a primary field, secondary, tertiary, etc: First
+     * sort by the least important field (tertiary), then the next important field (secondary), and
+     * finally the most important field (primary). But the sorting algorithm needs to be stable for
+     * this to work."
+     *
+     * @param items
+     */
     private void sort(@NonNull T[] items, int length) {
         if (DEBUG_LOG) {
             Log.e(TAG, "sort(items=" + toString(items) + ", length=" + length + ")");
         }
+        //for (Comparator<T> comparator : getComparators()) {
         Comparator<T> comparator = mCallback;
         if (DEBUG_LOG) {
             Log.e(TAG, "sort: comparator=" + comparator);
@@ -371,10 +395,12 @@ public class SortedList<T> {
         }
         // Arrays.sort is stable.
         Arrays.sort(items, 0, length - 1, comparator);
+        //}
     }
 
     private int compare(T o1, T o2) {
         int result = 0;
+        //for (Comparator<T> comparator : getComparators()) {
         Comparator<T> comparator = mCallback;
         if (DEBUG_LOG) {
             Log.e(TAG, "compare: comparator=" + comparator);
@@ -385,6 +411,10 @@ public class SortedList<T> {
         if (DEBUG_LOG) {
             Log.e(TAG, "compare: result=" + result);
         }
+        //if (result != 0) {
+        //    break;
+        //}
+        //}
         if (DEBUG_LOG) {
             Log.e(TAG, "compare: return result=" + result);
         }
@@ -451,6 +481,7 @@ public class SortedList<T> {
     /**
      * This method assumes that newItems are sorted and deduplicated.
      */
+    //private boolean merge(T[] newData, int newDataSize, boolean notify) {
     private void merge(T[] newData, int newDataSize) {
         final boolean forceBatchedUpdates = !(mCallback instanceof BatchedCallback);
         if (forceBatchedUpdates) {
@@ -465,6 +496,8 @@ public class SortedList<T> {
         mData = (T[]) Array.newInstance(mTClass, mergedCapacity);
         mNewDataStart = 0;
 
+        boolean calledback = false;
+
         int newDataStart = 0;
         while (mOldDataStart < mOldDataSize || newDataStart < newDataSize) {
             if (mOldDataStart == mOldDataSize) {
@@ -473,7 +506,10 @@ public class SortedList<T> {
                 System.arraycopy(newData, newDataStart, mData, mNewDataStart, itemCount);
                 mNewDataStart += itemCount;
                 mSize += itemCount;
+                //if (notify) {
+                //    calledback = true;
                 mCallback.onInserted(mNewDataStart - itemCount, itemCount);
+                //}
                 break;
             }
 
@@ -493,15 +529,21 @@ public class SortedList<T> {
                 mData[mNewDataStart++] = newItem;
                 mSize++;
                 newDataStart++;
+                //if (notify) {
+                //    calledback = true;
                 mCallback.onInserted(mNewDataStart - 1, 1);
+                //}
             } else if (compare == 0 && mCallback.areItemsTheSame(oldItem, newItem)) {
                 // Items are the same. Output the new item, but consume both.
                 mData[mNewDataStart++] = newItem;
                 newDataStart++;
                 mOldDataStart++;
                 if (!mCallback.areContentsTheSame(oldItem, newItem)) {
+                    //if (notify) {
+                    //    calledback = true;
                     mCallback.onChanged(mNewDataStart - 1, 1,
                             mCallback.getChangePayload(oldItem, newItem));
+                    //}
                 }
             } else {
                 // Old item is lower than or equal to (but not the same as the new). Output it.
@@ -516,6 +558,8 @@ public class SortedList<T> {
         if (forceBatchedUpdates) {
             endBatchedUpdates();
         }
+
+        //return calledback;
     }
 
     /**
@@ -616,17 +660,71 @@ public class SortedList<T> {
                     return index;
                 }
             }
+            /*
+            boolean areItemsTheSame = mCallback.areItemsTheSame(existing, item);
+            if (DEBUG_LOG) {
+                Log.e(TAG, "add: areItemsTheSame=" + areItemsTheSame);
+            }
+            if (areItemsTheSame) {
+                // Always replace the item, whether it has changed or not
+                mData[index] = item;
+
+                int newSize = sortAndDedup(mData, mSize);
+                boolean calledback = merge(mData, newSize, notify);
+
+                if (DEBUG_LOG) {
+                    Log.e(TAG, "add:  AFTER mData=" + Arrays.toString(mData));
+                }
+
+                index = findIndexOf(item, mData, 0, mSize, INSERTION);
+
+                if (notify && !calledback) {
+                    if (!mCallback.areContentsTheSame(existing, item)) {
+                        mCallback.onChanged(index, 1, mCallback.getChangePayload(existing, item));
+                    }
+                }
+
+                return index;
+            }
+            */
         }
 
         if (DEBUG_LOG) {
             Log.e(TAG, "add: addToData(index=" + index + ", item=" + item + ")");
         }
         addToData(index, item);
+
         if (notify) {
             mCallback.onInserted(index, 1);
         }
+
+        /*
+        int newSize = sortAndDedup(mData, mSize);
+        boolean calledback = merge(mData, newSize, notify);
+
+        if (DEBUG_LOG) {
+            Log.e(TAG, "add:  AFTER mData=" + Arrays.toString(mData));
+        }
+
+        index = findIndexOf(item, mData, 0, mSize, INSERTION);
+
+        if (notify && !calledback) {
+            mCallback.onInserted(index, 1);
+            //onItemAdded(index);
+        }
+         */
+
         return index;
     }
+
+    /*
+    private void onItemAdded(int index) {
+        mCallback.onInserted(index, 1);
+        for (int i = index + 1; i < mSize; i++) {
+            mCallback.onMoved(i, i + 1);
+        }
+    }
+     */
 
     /**
      * Removes the provided item from the list and calls {@link Callback#onRemoved(int, int)}.
@@ -914,6 +1012,12 @@ public class SortedList<T> {
         @Override
         abstract public int compare(T2 o1, T2 o2);
 
+        /* *
+         * Allows multi-dimensional (secondary, tertiary, etc) sorts
+         * /
+        abstract public Comparator<T2>[] getComparators();
+         */
+
         /**
          * Called by the SortedList when the item at the given position is updated.
          *
@@ -1017,6 +1121,13 @@ public class SortedList<T> {
         public int compare(T2 o1, T2 o2) {
             return mWrappedCallback.compare(o1, o2);
         }
+
+        /*
+        @Override
+        public Comparator<T2>[] getComparators() {
+            return mWrappedCallback.getComparators();
+        }
+         */
 
         @Override
         public void onInserted(int position, int count) {

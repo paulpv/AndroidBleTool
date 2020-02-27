@@ -1,4 +1,4 @@
-package com.github.paulpv.androidbletool
+package com.github.paulpv.testapp
 
 import android.annotation.SuppressLint
 import android.os.Bundle
@@ -13,9 +13,10 @@ import androidx.appcompat.widget.Toolbar
 import androidx.core.app.NavUtils
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.github.paulpv.androidbletool.adapter.DeviceInfo
-import com.github.paulpv.androidbletool.adapter.DevicesAdapter
-import com.github.paulpv.androidbletool.adapter.SortBy
+import com.github.paulpv.androidbletool.*
+import com.github.paulpv.testapp.adapter.DeviceInfo
+import com.github.paulpv.testapp.adapter.DevicesAdapter
+import com.github.paulpv.testapp.adapter.SortBy
 import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
 import com.github.paulpv.androidbletool.exceptions.BleScanException
 import com.github.paulpv.androidbletool.utils.Utils
@@ -54,7 +55,7 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
         devicesAdapter = DevicesAdapter(this, SortBy.SignalLevelRssi)
         devicesAdapter!!.setEventListener(object : DevicesAdapter.EventListener<DeviceInfo> {
             override fun onItemSelected(item: DeviceInfo) {
-                Log.e(TAG, "onItemSelected: TODO:(pv) do something w/ $item!")
+                Log.e(TAG, "onItemSelected: TODO:(pv) Make $item beep!!!")
             }
         })
 

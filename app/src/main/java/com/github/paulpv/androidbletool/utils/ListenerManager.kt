@@ -1,9 +1,7 @@
-package com.github.paulpv.androidbletool
+package com.github.paulpv.androidbletool.utils
 
 import android.util.Log
-import com.github.paulpv.androidbletool.utils.ReflectionUtils
-import com.github.paulpv.androidbletool.utils.Runtime
-import com.github.paulpv.androidbletool.utils.Utils
+import com.github.paulpv.androidbletool.BuildConfig
 import java.util.*
 
 open class ListenerManager<T>(name: String) {

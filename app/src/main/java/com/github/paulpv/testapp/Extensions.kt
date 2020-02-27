@@ -1,8 +1,9 @@
-package com.github.paulpv.androidbletool
+package com.github.paulpv.testapp
 
 import android.app.Activity
 import android.util.Log
 import androidx.annotation.StringRes
+import com.github.paulpv.androidbletool.R
 import com.github.paulpv.androidbletool.exceptions.BleScanException
 import com.google.android.material.snackbar.Snackbar
 import java.util.*

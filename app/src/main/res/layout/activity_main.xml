@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    tools:context=".MainActivity"
+    tools:context="com.github.paulpv.testapp.MainActivity"
     >
 
     <com.google.android.material.appbar.AppBarLayout
@@ -51,7 +51,7 @@
         app:layout_behavior="@string/appbar_scrolling_view_behavior"
         >
 
-        <com.github.paulpv.androidbletool.DevicesRecyclerView
+        <com.github.paulpv.testapp.DevicesRecyclerView
             android:id="@+id/scan_results"
             android:layout_width="match_parent"
             android:layout_height="match_parent"

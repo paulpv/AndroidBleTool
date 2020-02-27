@@ -10,7 +10,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.github.paulpv.androidbletool.ListenerManager;
+import com.github.paulpv.androidbletool.utils.ListenerManager;
 import com.github.paulpv.androidbletool.utils.ReflectionUtils;
 import com.github.paulpv.androidbletool.utils.Utils;
 
