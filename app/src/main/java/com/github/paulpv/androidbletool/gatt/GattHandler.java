@@ -13,6 +13,8 @@ import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import com.github.paulpv.androidbletool.BluetoothUtils;
 import com.github.paulpv.androidbletool.BuildConfig;
 import com.github.paulpv.androidbletool.utils.ListenerManager;
@@ -310,7 +312,7 @@ public class GattHandler {
     private final long mDeviceAddressLong;
     private final String mDeviceAddressString;
     /**
-     * NOTE: All calls to GattHandlerListener methods should be inside mHandlerMain's Looper thread
+     * NOTE: All calls to GattHandlerListener methods should be **INSIDE** mHandlerMain's Looper thread
      */
     private final ListenerManager<GattHandlerListener> mListenerManager;
     private final MyHandler mHandlerMain;
@@ -507,8 +509,12 @@ public class GattHandler {
         return getBluetoothGatt(false) == null;
     }
 
-    public boolean hasPendingOperations() {
-        return false;
+    private void postDelayed(@NonNull Runnable runnable) {
+        postDelayed(runnable, POST_DELAY_MILLIS);
+    }
+
+    private void postDelayed(@NonNull Runnable runnable, long delayMillis) {
+        mHandlerMain.postDelayed(runnable, delayMillis);
     }
 
     private BluetoothGatt getBluetoothGatt(boolean onlyIfConnectingOrConnectedAndNotDisconnecting) {
@@ -666,15 +672,14 @@ public class GattHandler {
         if (reconnecting) {
             pendingGattOperationInfo = null;
 
-            mHandlerMain.postDelayed(() -> {
+            postDelayed(() -> {
                 GattUtils.Companion.safeDisconnect("reconnectIfConnecting", mBluetoothGatt);
-
-                mHandlerMain.postDelayed(() -> {
+                postDelayed(() -> {
                     if (!connectInternal("reconnectIfConnecting", false, mConnectStartTimeMillis, mConnectAutoConnect, mConnectRunAfterConnect, mConnectRunAfterFail)) {
                         Log.e(TAG, logPrefix("reconnectIfConnecting: failed to request reconnect"));
                     }
-                }, POST_DELAY_MILLIS);
-            }, POST_DELAY_MILLIS);
+                });
+            });
         }
 
         return pendingGattOperationInfo;
@@ -704,7 +709,7 @@ public class GattHandler {
 
         //final GattOperation operation = GattOperation.Connect;
         final GattHandlerListener.GattOperation operation = GattHandlerListener.GattOperation.DiscoverServices;
-        mHandlerMain.postDelayed(() -> {
+        postDelayed(() -> {
             try {
                 Log.v(TAG, logPrefix("+" + callerNameFinal + ".run(): autoConnect=" + autoConnect));
 
@@ -754,7 +759,7 @@ public class GattHandler {
             } finally {
                 Log.v(TAG, logPrefix("-" + callerNameFinal + ".run(): autoConnect=" + autoConnect));
             }
-        }, POST_DELAY_MILLIS);
+        });
 
         return true;
     }
@@ -784,7 +789,7 @@ public class GattHandler {
                 //
                 if (!isMainThread()) {
                     Log.v(TAG, logPrefix("disconnect: isMainThread() == false; posting disconnect() to mHandlerMain;"));
-                    mHandlerMain.postDelayed(() -> disconnect(timeoutMillis, runAfterDisconnect), POST_DELAY_MILLIS);
+                    postDelayed(() -> disconnect(timeoutMillis, runAfterDisconnect));
                     return false;
                 }
 
@@ -858,7 +863,7 @@ public class GattHandler {
 
             GattUtils.Companion.safeClose("onDeviceDisconnected", gatt);
 
-            mHandlerMain.postDelayed(() -> {
+            postDelayed(() -> {
                 if (mBluetoothGatt != null) {
                     Log.w(TAG, logPrefix("onDeviceDisconnected: mBluetoothGatt != null; ignoring"));
                     return;
@@ -879,7 +884,7 @@ public class GattHandler {
                 if (runAfterDisconnect != null) {
                     runAfterDisconnect.run();
                 }
-            }, POST_DELAY_MILLIS);
+            });
         }
     }
 
@@ -983,7 +988,7 @@ public class GattHandler {
 
             boolean bonded = gatt.getDevice().getBondState() == BluetoothDevice.BOND_BONDED;
             int serviceDiscoveryDelay = getServiceDiscoveryDelay(bonded);
-            mHandlerMain.postDelayed(() -> {
+            postDelayed(() -> {
                 if (mBluetoothGatt == null) {
                     // Ensure that we will not try to discover services for a lost connection.
                     return;
@@ -1019,7 +1024,7 @@ public class GattHandler {
     private void onDeviceOperationTimeout(final GattHandlerListener.GattOperation gattOperation,
                                           final long timeoutMillis,
                                           final long elapsedMillis) {
-        mHandlerMain.postDelayed(() -> {
+        postDelayed(() -> {
             boolean disconnect = true;
 
             for (GattHandlerListener deviceListener : mListenerManager.beginTraversing()) {
@@ -1035,11 +1040,11 @@ public class GattHandler {
             if (disconnect) {
                 disconnect(null);
             }
-        }, POST_DELAY_MILLIS);
+        });
     }
 
     private void onDeviceConnecting() {
-        mHandlerMain.postDelayed(() -> {
+        postDelayed(() -> {
             boolean disconnect = false;
 
             for (GattHandlerListener deviceListener : mListenerManager.beginTraversing()) {
@@ -1051,13 +1056,13 @@ public class GattHandler {
             if (disconnect) {
                 disconnect(null);
             }
-        }, POST_DELAY_MILLIS);
+        });
     }
 
     private void onDeviceConnected() {
         final long elapsedMillis = timerElapsed(GattHandlerListener.GattOperation.Connect, false);
 
-        mHandlerMain.postDelayed(() -> {
+        postDelayed(() -> {
             boolean disconnect = false;
 
             for (GattHandlerListener deviceListener : mListenerManager.beginTraversing()) {
@@ -1070,7 +1075,7 @@ public class GattHandler {
             if (disconnect) {
                 disconnect(null);
             }
-        }, POST_DELAY_MILLIS);
+        });
     }
 
     private void onServicesDiscovered(BluetoothGatt gatt, int status) {
@@ -1159,7 +1164,7 @@ public class GattHandler {
 
         logServicesAndCharacteristics("onDeviceServicesDiscovered", mBluetoothGatt, services);
 
-        mHandlerMain.postDelayed(() -> {
+        postDelayed(() -> {
             boolean disconnect = false;
 
             for (GattHandlerListener deviceListener : mListenerManager.beginTraversing()) {
@@ -1175,7 +1180,7 @@ public class GattHandler {
             if (!success || disconnect) {
                 disconnect(null);
             }
-        }, POST_DELAY_MILLIS);
+        });
     }
 
     //
@@ -1218,7 +1223,7 @@ public class GattHandler {
 
         final long startTimeMillis = timerStart(operation);
 
-        mHandlerMain.postDelayed(() -> {
+        postDelayed(() -> {
             try {
                 Log.v(TAG, logPrefix("+characteristicRead.run(): serviceUuid=" + serviceUuid +
                         ", characteristicUuid=" + characteristicUuid +
@@ -1262,7 +1267,7 @@ public class GattHandler {
                         ", characteristicUuid=" + characteristicUuid +
                         ", timeoutMillis=" + timeoutMillis));
             }
-        }, POST_DELAY_MILLIS);
+        });
 
         return true;
     }
@@ -1296,7 +1301,7 @@ public class GattHandler {
 
         final long elapsedMillis = timerElapsed(GattHandlerListener.GattOperation.CharacteristicRead, true);
 
-        mHandlerMain.postDelayed(() -> {
+        postDelayed(() -> {
             boolean disconnect = false;
 
             for (GattHandlerListener deviceListener : mListenerManager.beginTraversing()) {
@@ -1312,7 +1317,7 @@ public class GattHandler {
             if (!success || disconnect) {
                 disconnect(null);
             }
-        }, POST_DELAY_MILLIS);
+        });
     }
 
     //
@@ -1712,7 +1717,7 @@ public class GattHandler {
 
         final long startTimeMillis = timerStart(operation);
 
-        mHandlerMain.postDelayed(() -> {
+        postDelayed(() -> {
             try {
                 Log.v(TAG, logPrefix("+characteristicWrite.run(): serviceUuid=" + serviceUuid +
                         ", characteristicUuid=" + characteristicUuid +
@@ -1784,7 +1789,7 @@ public class GattHandler {
                         ", characteristicWriteType=" + characteristicWriteType +
                         ", timeoutMillis=" + timeoutMillis));
             }
-        }, POST_DELAY_MILLIS);
+        });
 
         return true;
     }
@@ -1817,7 +1822,7 @@ public class GattHandler {
 
         final long elapsedMillis = timerElapsed(GattHandlerListener.GattOperation.CharacteristicWrite, true);
 
-        mHandlerMain.postDelayed(() -> {
+        postDelayed(() -> {
             boolean disconnect = false;
 
             for (GattHandlerListener deviceListener : mListenerManager.beginTraversing()) {
@@ -1833,7 +1838,7 @@ public class GattHandler {
             if (!success || disconnect) {
                 disconnect(null);
             }
-        }, POST_DELAY_MILLIS);
+        });
     }
 
     //
@@ -1923,7 +1928,7 @@ public class GattHandler {
 
         final long startTimeMillis = timerStart(operation);
 
-        mHandlerMain.postDelayed(() -> {
+        postDelayed(() -> {
             try {
                 Log.v(TAG, logPrefix(
                         "+characteristicSetNotification.run(): serviceUuid=" + serviceUuid +
@@ -2022,7 +2027,7 @@ public class GattHandler {
                                 ", setDescriptorClientCharacteristicConfig=" + setDescriptorClientCharacteristicConfig +
                                 ", timeoutMillis=" + timeoutMillis));
             }
-        }, POST_DELAY_MILLIS);
+        });
 
         return true;
     }
@@ -2067,7 +2072,7 @@ public class GattHandler {
 
         final long elapsedMillis = timerElapsed(GattHandlerListener.GattOperation.CharacteristicSetNotification, true);
 
-        mHandlerMain.postDelayed(() -> {
+        postDelayed(() -> {
             boolean disconnect = false;
 
             for (GattHandlerListener deviceListener : mListenerManager.beginTraversing()) {
@@ -2082,7 +2087,7 @@ public class GattHandler {
             if (!success || disconnect) {
                 disconnect(null);
             }
-        }, POST_DELAY_MILLIS);
+        });
     }
 
     private void onCharacteristicChanged(@SuppressWarnings("unused") BluetoothGatt gatt,
@@ -2206,7 +2211,7 @@ public class GattHandler {
 
         final long startTimeMillis = timerStart(operation);
 
-        mHandlerMain.postDelayed(() -> {
+        postDelayed(() -> {
             try {
                 Log.v(TAG, logPrefix("+readRemoteRssi.run(): timeoutMillis=" + timeoutMillis + ')'));
 
@@ -2226,7 +2231,7 @@ public class GattHandler {
             } finally {
                 Log.v(TAG, logPrefix("-readRemoteRssi.run(): timeoutMillis=" + timeoutMillis + ')'));
             }
-        }, POST_DELAY_MILLIS);
+        });
 
         return true;
     }
@@ -2250,7 +2255,7 @@ public class GattHandler {
 
         final long elapsedMillis = timerElapsed(GattHandlerListener.GattOperation.ReadRemoteRssi, true);
 
-        mHandlerMain.postDelayed(() -> {
+        postDelayed(() -> {
             boolean disconnect = false;
 
             for (GattHandlerListener deviceListener : mListenerManager.beginTraversing()) {
@@ -2265,7 +2270,7 @@ public class GattHandler {
             if (!success || disconnect) {
                 disconnect(null);
             }
-        }, POST_DELAY_MILLIS);
+        });
     }
 
     //
