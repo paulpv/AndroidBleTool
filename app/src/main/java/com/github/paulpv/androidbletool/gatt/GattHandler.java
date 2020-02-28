@@ -155,7 +155,7 @@ public class GattHandler {
      * Well-Known UUID for <a href="https://developer.bluetooth.org/gatt/descriptors/Pages/DescriptorViewer.aspx?u=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml">
      * Client Characteristic Configuration</a>
      */
-    private static final UUID CLIENT_CHARACTERISTIC_CONFIG = GattUuids.CLIENT_CHARACTERISTIC_CONFIG.getUuid();
+    private static final UUID CLIENT_CHARACTERISTIC_CONFIG = GattUuids.Companion.getCLIENT_CHARACTERISTIC_CONFIG().getUuid();
 
     /**
      * Various wrappers around {@link BluetoothGattCallback} methods
@@ -416,7 +416,6 @@ public class GattHandler {
         }
     }
 
-    @SuppressWarnings("WeakerAccess")
     public long getDeviceAddressLong() {
         return mDeviceAddressLong;
     }
@@ -432,7 +431,6 @@ public class GattHandler {
         return gatt != null ? gatt.getDevice() : null;
     }
 
-    @SuppressWarnings("WeakerAccess")
     public void close() {
         close(true);
     }
@@ -1134,19 +1132,19 @@ public class GattHandler {
             for (int i = 0, servicesSize = services.size(); i < servicesSize; i++) {
                 service = services.get(i);
                 // @formatter:off
-                Log.v(TAG, logPrefix(callerName + ":                    services[" + Utils.Companion.formatNumber(i, 2) + "]=" + GattUuids.toString(service)));
+                Log.v(TAG, logPrefix(callerName + ":                    services[" + Utils.Companion.formatNumber(i, 2) + "]=" + GattUuids.Companion.toString(service)));
                 uuid = service.getUuid();
                 Log.v(TAG, logPrefix(callerName + ":          services[" + Utils.Companion.formatNumber(i, 2) + "].getUuid()=" + uuid));
                 serviceGet = gatt.getService(uuid);
-                Log.v(TAG, logPrefix(callerName + ":           gatt.getService(uuid)=" + GattUuids.toString(serviceGet)));
+                Log.v(TAG, logPrefix(callerName + ":           gatt.getService(uuid)=" + GattUuids.Companion.toString(serviceGet)));
                 characteristics = service.getCharacteristics();
                 for (int j = 0, characteristicsSize = characteristics.size(); j < characteristicsSize; j++) {
                     characteristic = characteristics.get(j);
-                    Log.v(TAG, logPrefix(callerName + ":             characteristics[" + Utils.Companion.formatNumber(j, 2) + "]=" + GattUuids.toString((characteristic))));
+                    Log.v(TAG, logPrefix(callerName + ":             characteristics[" + Utils.Companion.formatNumber(j, 2) + "]=" + GattUuids.Companion.toString((characteristic))));
                     uuid = characteristic.getUuid();
                     Log.v(TAG, logPrefix(callerName + ":   characteristics[" + Utils.Companion.formatNumber(j, 2) + "].getUuid()=" + uuid));
                     characteristicGet = service.getCharacteristic(uuid);
-                    Log.v(TAG, logPrefix(callerName + ": service.getCharacteristic(uuid)=" + GattUuids.toString((characteristicGet))));
+                    Log.v(TAG, logPrefix(callerName + ": service.getCharacteristic(uuid)=" + GattUuids.Companion.toString((characteristicGet))));
                 }
                 Log.v(TAG, logPrefix(callerName + ": ------------------------------------------"));
                 // @formatter:on
