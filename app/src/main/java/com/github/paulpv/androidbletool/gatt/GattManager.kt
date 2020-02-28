@@ -12,17 +12,9 @@ class GattManager constructor(val context: Context, looper: Looper? = null) {
         private val TAG = TAG(GattManager::class.java)
     }
 
-    val looper: Looper?
+    val looper: Looper = looper ?: Looper.getMainLooper()
 
     private val gattHandlers = IterableLongSparseArray<GattHandler>()
-
-    init {
-        @Suppress("NAME_SHADOWING") var looper = looper
-        if (looper == null) {
-            looper = Looper.getMainLooper()
-        }
-        this.looper = looper
-    }
 
     /**
      * Allocates a GattHandler. To free the GattHandler, call [GattHandler.close]
@@ -46,6 +38,7 @@ class GattManager constructor(val context: Context, looper: Looper? = null) {
         gattHandlers.remove(gattHandler.deviceAddressLong)
     }
 
+    @Suppress("unused")
     fun close() {
         Log.v(TAG, "+close()")
         synchronized(gattHandlers) {

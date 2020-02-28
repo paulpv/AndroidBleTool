@@ -103,8 +103,7 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
                     runDisconnect.run()
                 }
 
-                val wasConnectingOrConnectedAndNotDisconnecting = gattHandler.isConnectingOrConnectedAndNotDisconnecting
-                if (wasConnectingOrConnectedAndNotDisconnecting) {
+                if (gattHandler.isConnectingOrConnectedAndNotDisconnecting) {
                     runAfterConnectSuccess.run()
                 } else {
                     if (!gattHandler.connect(runAfterConnectSuccess, runAfterConnectFail)) {
