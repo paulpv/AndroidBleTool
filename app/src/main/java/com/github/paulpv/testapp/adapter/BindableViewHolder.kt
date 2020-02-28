@@ -1,4 +1,4 @@
-package com.github.paulpv.androidbletool.adapter
+package com.github.paulpv.testapp.adapter
 
 import android.view.View
 import android.view.View.OnClickListener

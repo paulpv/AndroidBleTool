@@ -13,18 +13,27 @@ import androidx.appcompat.widget.Toolbar
 import androidx.core.app.NavUtils
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.github.paulpv.androidbletool.*
+import com.github.paulpv.androidbletool.BleScanResult
+import com.github.paulpv.androidbletool.BleTool
+import com.github.paulpv.androidbletool.R
+import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
+import com.github.paulpv.androidbletool.exceptions.BleScanException
+import com.github.paulpv.androidbletool.gatt.GattHandler
+import com.github.paulpv.androidbletool.gatt.GattUuids
+import com.github.paulpv.androidbletool.utils.Utils
 import com.github.paulpv.testapp.adapter.DeviceInfo
 import com.github.paulpv.testapp.adapter.DevicesAdapter
 import com.github.paulpv.testapp.adapter.SortBy
-import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
-import com.github.paulpv.androidbletool.exceptions.BleScanException
-import com.github.paulpv.androidbletool.utils.Utils
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
     companion object {
         private val TAG = Utils.TAG(MainActivity::class.java)
+
+        private val PLAY_JINGLE_COUNT_1 = byteArrayOf(0x01, 0x00)
+        private val PLAY_JINGLE_COUNT_2 = byteArrayOf(0x01, 0x00, 0x00)
+        private val PLAY_JINGLE_COUNT_3 = byteArrayOf(0x01, 0x00, 0x00, 0x00)
+        private val PLAY_JINGLE_COUNT_4 = byteArrayOf(0x80.toByte(), 0x01)
     }
 
     private var switchScan: SwitchCompat? = null
@@ -55,7 +64,53 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
         devicesAdapter = DevicesAdapter(this, SortBy.SignalLevelRssi)
         devicesAdapter!!.setEventListener(object : DevicesAdapter.EventListener<DeviceInfo> {
             override fun onItemSelected(item: DeviceInfo) {
-                Log.e(TAG, "onItemSelected: TODO:(pv) Make $item beep!!!")
+                Log.e(TAG, "onItemSelected: Make $item beep!!!")
+                val bleDevice = bleTool!!.getBleDevice(item.macAddress)
+                val gattHandler = bleDevice.gattHandler
+
+                val runDisconnect = Runnable {
+                    gattHandler.disconnect {
+                        Log.e(TAG, "DISCONNECTED!")
+                    }
+                }
+                val runAfterWriteSuccess = Runnable {
+                    Log.e(TAG, "WRITE SUCCESS!")
+                    runDisconnect.run()
+                }
+                val runAfterWriteFail = Runnable {
+                    Log.e(TAG, "WRITE FAIL!")
+                    runDisconnect.run()
+                }
+                val runAfterConnectSuccess = Runnable {
+                    Log.e(TAG, "CONNECT SUCCESS!")
+                    val service = GattUuids.PEBBLEBEE_FINDER_SERVICE.uuid
+                    val characteristic = GattUuids.PEBBLEBEE_FINDER_CHARACTERISTIC1.uuid
+                    val value = PLAY_JINGLE_COUNT_4
+                    if (!gattHandler.characteristicWrite(
+                            service,
+                            characteristic,
+                            value,
+                            GattHandler.CharacteristicWriteType.DefaultWithResponse,
+                            runAfterWriteSuccess,
+                            runAfterWriteFail
+                        )
+                    ) {
+                        runDisconnect.run()
+                    }
+                }
+                val runAfterConnectFail = Runnable {
+                    Log.e(TAG, "CONNECT FAIL!")
+                    runDisconnect.run()
+                }
+
+                val wasConnectingOrConnectedAndNotDisconnecting = gattHandler.isConnectingOrConnectedAndNotDisconnecting
+                if (wasConnectingOrConnectedAndNotDisconnecting) {
+                    runAfterConnectSuccess.run()
+                } else {
+                    if (!gattHandler.connect(runAfterConnectSuccess, runAfterConnectFail)) {
+                        runDisconnect.run()
+                    }
+                }
             }
         })
 

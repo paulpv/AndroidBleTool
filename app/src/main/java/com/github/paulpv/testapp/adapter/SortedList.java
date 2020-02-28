@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.paulpv.androidbletool.collections;
+package com.github.paulpv.testapp.adapter;
 
 import android.util.Log;
 
@@ -43,7 +43,7 @@ import java.util.Comparator;
 public class SortedList<T> {
     private static final String TAG = Utils.Companion.TAG(SortedList.class);
 
-    private static final boolean DEBUG_LOG = true;
+    private static final boolean DEBUG_LOG = false;
 
     /**
      * Used by {@link #indexOf(Object)} when the item cannot be found in the list.

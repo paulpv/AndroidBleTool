@@ -20,6 +20,7 @@ import androidx.work.WorkerParameters
 import com.github.paulpv.androidbletool.BluetoothUtils.Companion.callbackTypeToString
 import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
 import com.github.paulpv.androidbletool.exceptions.BleScanException
+import com.github.paulpv.androidbletool.gatt.GattManager
 import com.github.paulpv.androidbletool.utils.ReflectionUtils
 import com.github.paulpv.androidbletool.utils.Utils
 import com.livinglifetechway.quickpermissions_kotlin.runWithPermissions
@@ -1256,5 +1257,15 @@ class BleTool(
         // @formatter:on
         recentlyNearbyDevicesUpdatedDebounce.remove(item)
         deviceScanObservers.forEach { it.onDeviceRemoved(this, item) }
+    }
+
+    //
+    //
+    //
+
+    private val gattManager = GattManager(application, this.looper)
+
+    fun getBleDevice(macAddress: String): BleDevice {
+        return BleDevice.newDevice(gattManager, macAddress)
     }
 }

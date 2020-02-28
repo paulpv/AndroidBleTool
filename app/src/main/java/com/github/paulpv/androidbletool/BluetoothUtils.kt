@@ -1,10 +1,7 @@
 package com.github.paulpv.androidbletool
 
 import android.annotation.SuppressLint
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothGatt
-import android.bluetooth.BluetoothManager
+import android.bluetooth.*
 import android.bluetooth.le.BluetoothLeAdvertiser
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanSettings
@@ -19,6 +16,7 @@ class BluetoothUtils {
     companion object {
         private val TAG = Utils.TAG(BluetoothUtils::class.java)
 
+        @Suppress("MemberVisibilityCanBePrivate")
         fun isBluetoothSupported(context: Context): Boolean {
             return context.packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH)
         }
@@ -31,6 +29,7 @@ class BluetoothUtils {
          * @param context
          * @return null if Bluetooth is not supported
          */
+        @Suppress("MemberVisibilityCanBePrivate")
         fun getBluetoothManager(context: Context): BluetoothManager? {
             return if (!isBluetoothSupported(context)) null else context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
 
@@ -57,7 +56,7 @@ class BluetoothUtils {
             }
         }
 
-        @SuppressLint("ObsoleteSdkInt")
+        @Suppress("unused")
         fun getBluetoothLeAdvertiser(bluetoothAdapter: BluetoothAdapter?): BluetoothLeAdvertiser? {
             var bluetoothLeAdvertiser: BluetoothLeAdvertiser? = null
 
@@ -98,6 +97,7 @@ class BluetoothUtils {
          * <li><a href="https://github.com/RadiusNetworks/android-ibeacon-service/issues/16">https://github.com/RadiusNetworks/android-ibeacon-service/issues/16</a></li>
          * </ul>
          */
+        @Suppress("unused")
         fun bluetoothAdapterEnable(bluetoothAdapter: BluetoothAdapter?, on: Boolean): Boolean {
             // TODO:(pv) Known to sometimes throw DeadObjectException
             //  https://code.google.com/p/android/issues/detail?id=67272
@@ -122,29 +122,43 @@ class BluetoothUtils {
                     }
         }
 
-        fun gattDeviceAddressToLong(gatt: BluetoothGatt): Long {
-            return bluetoothDeviceAddressToLong(gatt.device)
+        //
+        //
+        //
+
+        fun throwExceptionIfInvalidBluetoothAddress(deviceAddress: Long) {
+            if (deviceAddress == 0L || deviceAddress == -1L) {
+                throw IllegalArgumentException("deviceAddress invalid")
+            }
         }
 
-        fun bluetoothDeviceAddressToLong(device: BluetoothDevice): Long {
-            return macAddressStringToLong(device.address)
+        @Suppress("unused")
+        fun gattDeviceAddressToLong(gatt: BluetoothGatt?): Long {
+            return bluetoothDeviceAddressToLong(gatt?.device)
         }
 
-        fun gattDeviceAddressToPrettyString(gatt: BluetoothGatt): String {
-            return bluetoothDeviceAddressToPrettyString(gatt.device)
+        @Suppress("MemberVisibilityCanBePrivate")
+        fun bluetoothDeviceAddressToLong(device: BluetoothDevice?): Long {
+            return macAddressStringToLong(device?.address)
         }
 
-        fun bluetoothDeviceAddressToPrettyString(device: BluetoothDevice): String {
-            return macAddressStringToPrettyString(device.address)
+        fun gattDeviceAddressToString(gatt: BluetoothGatt?): String {
+            return bluetoothDeviceAddressToString(gatt?.device)
         }
 
+        @Suppress("MemberVisibilityCanBePrivate")
+        fun bluetoothDeviceAddressToString(device: BluetoothDevice?): String {
+            return macAddressStringToString(device?.address)
+        }
+
+        @Suppress("MemberVisibilityCanBePrivate")
         fun getShortDeviceAddressString(deviceAddress: String?): String? {
             @Suppress("NAME_SHADOWING") var deviceAddress = deviceAddress
             if (deviceAddress != null) {
                 deviceAddress = macAddressStringToStrippedLowerCaseString(deviceAddress)
-                val start = Math.max(deviceAddress.length - 4, 0)
+                val start = (deviceAddress.length - 4).coerceAtLeast(0)
                 deviceAddress = deviceAddress.substring(start, deviceAddress.length)
-                deviceAddress = deviceAddress.toUpperCase()
+                deviceAddress = deviceAddress.toUpperCase(Locale.ROOT)
             }
             if (Utils.isNullOrEmpty(deviceAddress)) {
                 deviceAddress = "null"
@@ -152,30 +166,37 @@ class BluetoothUtils {
             return deviceAddress
         }
 
+        @Suppress("unused")
         fun getShortDeviceAddressString(deviceAddress: Long): String? {
             return getShortDeviceAddressString(macAddressLongToString(deviceAddress))
         }
 
-        fun macAddressStringToStrippedLowerCaseString(macAddress: String): String {
-            return macAddress.replace(":", "").toLowerCase()
+        @Suppress("MemberVisibilityCanBePrivate")
+        fun macAddressStringToStrippedLowerCaseString(macAddress: String?): String {
+            return (macAddress?.replace(":", "") ?: "00:00:00:00:00:00").toLowerCase(Locale.ROOT)
         }
 
-        fun macAddressStringToLong(macAddress: String): Long {
+        fun macAddressStringToLong(macAddress: String?): Long {
             /*
-            if (macAddress == null || macAddress.length() != 17)
-            {
-                throw new IllegalArgumentException("macAddress (" + PbString.quote(macAddress) +
-                                                   ") must be of format \"%02X:%02X:%02X:%02X:%02X:%02X\"");
+            if (macAddress == null || macAddress.length() != 17) {
+                throw new IllegalArgumentException("macAddress (" + PbString.quote(macAddress) + ") must be of format \"%02X:%02X:%02X:%02X:%02X:%02X\"");
             }
             */
-            return java.lang.Long.parseLong(macAddressStringToStrippedLowerCaseString(macAddress), 16)
+            @Suppress("NAME_SHADOWING") val macAddress = macAddressStringToStrippedLowerCaseString(macAddress)
+            return java.lang.Long.parseLong(macAddress, 16)
         }
 
-        fun macAddressStringToPrettyString(macAddress: String): String {
-            return macAddressLongToPrettyString(macAddressStringToLong(macAddress))
+        @Suppress("MemberVisibilityCanBePrivate")
+        fun macAddressStringToString(macAddress: String?): String {
+            return macAddressLongToString(macAddressStringToLong(macAddress))
         }
 
-        fun macAddressLongToPrettyString(macAddress: Long): String {
+        /**
+         * Per [BluetoothAdapter.getRemoteDevice]:
+         * "Valid Bluetooth hardware addresses must be upper case, in a format
+         * such as "00:11:22:33:AA:BB"."
+         */
+        fun macAddressLongToString(macAddress: Long): String {
             return String.format(
                 Locale.US, "%02X:%02X:%02X:%02X:%02X:%02X",
                 (macAddress shr 40 and 0xff).toByte(),
@@ -187,12 +208,12 @@ class BluetoothUtils {
             )
         }
 
-        fun macAddressLongToString(macAddressLong: Long): String {
-            return String.format(Locale.US, "%012x", macAddressLong)
-        }
+        //
+        //
+        //
 
         fun bluetoothAdapterStateToString(bluetoothAdapterState: Int): String {
-            val name: String = when (bluetoothAdapterState) {
+            val name = when (bluetoothAdapterState) {
                 BluetoothAdapter.STATE_OFF -> "STATE_OFF"
                 BluetoothAdapter.STATE_TURNING_ON -> "STATE_TURNING_ON"
                 BluetoothAdapter.STATE_ON -> "STATE_ON"
@@ -200,6 +221,17 @@ class BluetoothUtils {
                 else -> "UNKNOWN"
             }
             return "$name($bluetoothAdapterState)"
+        }
+
+        fun bluetoothProfileStateToString(state: Int): String? {
+            val text = when (state) {
+                BluetoothProfile.STATE_DISCONNECTED -> "STATE_DISCONNECTED"
+                BluetoothProfile.STATE_DISCONNECTING -> "STATE_DISCONNECTING"
+                BluetoothProfile.STATE_CONNECTING -> "STATE_CONNECTING"
+                BluetoothProfile.STATE_CONNECTED -> "STATE_CONNECTED"
+                else -> "STATE_UNKNOWN"
+            }
+            return "$text($state)"
         }
 
         fun callbackTypeToString(callbackType: Int): String {
@@ -212,14 +244,20 @@ class BluetoothUtils {
             return "$text($callbackType)"
         }
 
+        //
+        //
+        //
+
         /**
          * From hidden @see ScanCallback#SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES
          */
+        @Suppress("MemberVisibilityCanBePrivate")
         const val SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES = 5
 
         /**
          * From hidden @see ScanCallback#SCAN_FAILED_SCANNING_TOO_FREQUENTLY
          */
+        @Suppress("MemberVisibilityCanBePrivate")
         const val SCAN_FAILED_SCANNING_TOO_FREQUENTLY = 6
 
         fun scanErrorCodeToString(errorCode: Int): String {
@@ -235,6 +273,7 @@ class BluetoothUtils {
             return "$message($errorCode)"
         }
 
-        class BleScanThrowable(@Suppress("MemberVisibilityCanBePrivate", "CanBeParameter") val errorCode: Int) : Throwable(scanErrorCodeToString(errorCode))
+        class BleScanThrowable(@Suppress("MemberVisibilityCanBePrivate", "CanBeParameter") val errorCode: Int) :
+            Throwable(scanErrorCodeToString(errorCode))
     }
 }

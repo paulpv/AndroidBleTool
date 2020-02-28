@@ -1,4 +1,4 @@
-package com.github.paulpv.androidbletool.adapter
+package com.github.paulpv.testapp.adapter
 
 enum class SortBy {
     Address,

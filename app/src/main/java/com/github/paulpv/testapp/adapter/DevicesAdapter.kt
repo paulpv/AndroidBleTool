@@ -1,4 +1,4 @@
-package com.github.paulpv.androidbletool.adapter
+package com.github.paulpv.testapp.adapter
 
 import android.content.Context
 import android.util.Log
@@ -9,10 +9,9 @@ import androidx.annotation.LayoutRes
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.github.paulpv.androidbletool.BleScanResult
-import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
 import com.github.paulpv.androidbletool.R
+import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
 import com.github.paulpv.androidbletool.utils.Utils
-import com.github.paulpv.androidbletool.collections.SortedList
 import java.util.*
 
 class DevicesAdapter(var context: Context, initialSortBy: SortBy) : RecyclerView.Adapter<DevicesViewHolder>() {
