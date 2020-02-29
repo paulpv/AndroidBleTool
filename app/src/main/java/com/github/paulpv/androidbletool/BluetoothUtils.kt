@@ -78,12 +78,12 @@ class BluetoothUtils {
 
         fun isBluetoothAdapterEnabled(bluetoothAdapter: BluetoothAdapter?): Boolean {
             return try {
-                // TODO:(pv) Known to sometimes throw DeadObjectException
+                // NOTE:(pv) Known to sometimes throw DeadObjectException
                 //  https://code.google.com/p/android/issues/detail?id=67272
                 //  https://github.com/RadiusNetworks/android-ibeacon-service/issues/16
                 bluetoothAdapter != null && bluetoothAdapter.isEnabled
             } catch (e: Exception) {
-                Log.w(TAG, "isBluetoothAdapterEnabled: mBluetoothAdapter.isEnabled()", e)
+                Log.w(TAG, "isBluetoothAdapterEnabled: bluetoothAdapter.isEnabled()", e)
                 false
             }
         }

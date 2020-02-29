@@ -69,9 +69,9 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
                 val gattHandler = bleDevice.gattHandler
 
                 val runDisconnect = Runnable {
-                    gattHandler.disconnect {
+                    gattHandler.disconnect(runAfterDisconnect = Runnable {
                         Log.e(TAG, "DISCONNECTED!")
-                    }
+                    })
                 }
                 val runAfterWriteSuccess = Runnable {
                     Log.e(TAG, "WRITE SUCCESS!")
@@ -87,12 +87,12 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
                     val characteristic = GattUuids.PEBBLEBEE_FINDER_CHARACTERISTIC1.uuid
                     val value = PLAY_JINGLE_COUNT_4
                     if (!gattHandler.characteristicWrite(
-                            service,
-                            characteristic,
-                            value,
-                            GattHandler.CharacteristicWriteType.DefaultWithResponse,
-                            runAfterWriteSuccess,
-                            runAfterWriteFail
+                            serviceUuid = service,
+                            characteristicUuid = characteristic,
+                            value = value,
+                            characteristicWriteType = GattHandler.CharacteristicWriteType.DefaultWithResponse,
+                            runAfterSuccess = runAfterWriteSuccess,
+                            runAfterFail = runAfterWriteFail
                         )
                     ) {
                         runDisconnect.run()
@@ -106,7 +106,7 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
                 if (gattHandler.isConnectingOrConnectedAndNotDisconnecting) {
                     runAfterConnectSuccess.run()
                 } else {
-                    if (!gattHandler.connect(runAfterConnectSuccess, runAfterConnectFail)) {
+                    if (!gattHandler.connect(runAfterConnect = runAfterConnectSuccess, runAfterFail = runAfterConnectFail)) {
                         runDisconnect.run()
                     }
                 }
