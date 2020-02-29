@@ -69,44 +69,46 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
                 val gattHandler = bleDevice.gattHandler
 
                 val runDisconnect = Runnable {
+                    Log.e(TAG, "DISCONNECTING")
                     gattHandler.disconnect(runAfterDisconnect = Runnable {
                         Log.e(TAG, "DISCONNECTED!")
                     })
                 }
-                val runAfterWriteSuccess = Runnable {
-                    Log.e(TAG, "WRITE SUCCESS!")
-                    runDisconnect.run()
-                }
-                val runAfterWriteFail = Runnable {
-                    Log.e(TAG, "WRITE FAIL!")
-                    runDisconnect.run()
-                }
                 val runAfterConnectSuccess = Runnable {
-                    Log.e(TAG, "CONNECT SUCCESS!")
                     val service = GattUuids.PEBBLEBEE_FINDER_SERVICE.uuid
                     val characteristic = GattUuids.PEBBLEBEE_FINDER_CHARACTERISTIC1.uuid
                     val value = PLAY_JINGLE_COUNT_4
+                    Log.e(TAG, "WRITING")
                     if (!gattHandler.characteristicWrite(
                             serviceUuid = service,
                             characteristicUuid = characteristic,
                             value = value,
                             characteristicWriteType = GattHandler.CharacteristicWriteType.DefaultWithResponse,
-                            runAfterSuccess = runAfterWriteSuccess,
-                            runAfterFail = runAfterWriteFail
+                            runAfterSuccess = Runnable {
+                                Log.e(TAG, "WRITE SUCCESS!")
+                                runDisconnect.run()
+                            },
+                            runAfterFail = Runnable {
+                                Log.e(TAG, "WRITE FAIL!")
+                                runDisconnect.run()
+                            }
                         )
                     ) {
                         runDisconnect.run()
                     }
                 }
-                val runAfterConnectFail = Runnable {
-                    Log.e(TAG, "CONNECT FAIL!")
-                    runDisconnect.run()
-                }
 
                 if (gattHandler.isConnectingOrConnectedAndNotDisconnecting) {
                     runAfterConnectSuccess.run()
                 } else {
-                    if (!gattHandler.connect(runAfterConnect = runAfterConnectSuccess, runAfterFail = runAfterConnectFail)) {
+                    Log.e(TAG, "CONNECTING")
+                    if (!gattHandler.connect(runAfterConnect = Runnable {
+                            Log.e(TAG, "CONNECT SUCCESS!")
+                            runAfterConnectSuccess.run()
+                        }, runAfterFail = Runnable {
+                            Log.e(TAG, "CONNECT FAIL!")
+                            runDisconnect.run()
+                        })) {
                         runDisconnect.run()
                     }
                 }
