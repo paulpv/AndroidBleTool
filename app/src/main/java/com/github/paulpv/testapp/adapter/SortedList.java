@@ -41,7 +41,7 @@ import java.util.Comparator;
  */
 @SuppressWarnings("unchecked")
 public class SortedList<T> {
-    private static final String TAG = Utils.Companion.TAG(SortedList.class);
+    private static final String TAG = Utils.TAG(SortedList.class);
 
     private static final boolean DEBUG_LOG = false;
 
@@ -1181,7 +1181,7 @@ public class SortedList<T> {
 
     public abstract static class SortedListAdapterCallback<T2> extends Callback<T2> {
 
-        private static final String TAG = Utils.Companion.TAG(SortedListAdapterCallback.class);
+        private static final String TAG = Utils.TAG(SortedListAdapterCallback.class);
 
         final RecyclerView.Adapter mAdapter;
 

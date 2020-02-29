@@ -9,7 +9,7 @@ import android.util.Log;
 public class MyHandlerThread
         extends HandlerThread
 {
-    private static final String TAG = Utils.Companion.TAG(MyHandlerThread.class);
+    private static final String TAG = Utils.TAG(MyHandlerThread.class);
 
     /*
     private final Object mSyncLock = new Object();

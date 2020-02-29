@@ -86,7 +86,7 @@ public class MyHandler
         }
         return getClass().getSimpleName() + '@' + Integer.toHexString(hashCode()) +
                " { " +
-               infoKey + '=' + Utils.Companion.quote(infoValue) +
+               infoKey + '=' + Utils.quote(infoValue) +
                " }";
     }
 

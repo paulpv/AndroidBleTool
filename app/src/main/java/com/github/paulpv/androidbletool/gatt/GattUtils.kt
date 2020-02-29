@@ -5,8 +5,8 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattService
 import android.util.Log
 import com.github.paulpv.androidbletool.BluetoothUtils
-import com.github.paulpv.androidbletool.utils.Utils.Companion.TAG
-import com.github.paulpv.androidbletool.utils.Utils.Companion.quote
+import com.github.paulpv.androidbletool.utils.Utils.TAG
+import com.github.paulpv.androidbletool.utils.Utils.quote
 import java.util.*
 
 class GattUtils private constructor() {

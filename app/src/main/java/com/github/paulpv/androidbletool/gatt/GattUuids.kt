@@ -4,7 +4,7 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothGattService
 import android.util.Log
-import com.github.paulpv.androidbletool.utils.Utils.Companion.TAG
+import com.github.paulpv.androidbletool.utils.Utils.TAG
 import java.lang.reflect.Modifier
 import java.util.*
 

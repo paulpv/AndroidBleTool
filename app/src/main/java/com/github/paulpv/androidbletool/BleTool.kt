@@ -17,7 +17,7 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
-import com.github.paulpv.androidbletool.BluetoothUtils.Companion.callbackTypeToString
+import com.github.paulpv.androidbletool.BluetoothUtils.callbackTypeToString
 import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
 import com.github.paulpv.androidbletool.exceptions.BleScanException
 import com.github.paulpv.androidbletool.gatt.GattManager

@@ -6,10 +6,10 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Message
 import android.util.Log
-import com.github.paulpv.androidbletool.BluetoothUtils.Companion.bluetoothProfileStateToString
-import com.github.paulpv.androidbletool.BluetoothUtils.Companion.getBluetoothAdapter
-import com.github.paulpv.androidbletool.BluetoothUtils.Companion.macAddressLongToString
-import com.github.paulpv.androidbletool.BluetoothUtils.Companion.throwExceptionIfInvalidBluetoothAddress
+import com.github.paulpv.androidbletool.BluetoothUtils.bluetoothProfileStateToString
+import com.github.paulpv.androidbletool.BluetoothUtils.getBluetoothAdapter
+import com.github.paulpv.androidbletool.BluetoothUtils.macAddressLongToString
+import com.github.paulpv.androidbletool.BluetoothUtils.throwExceptionIfInvalidBluetoothAddress
 import com.github.paulpv.androidbletool.BuildConfig
 import com.github.paulpv.androidbletool.gatt.GattHandler.GattHandlerListener.DisconnectReason
 import com.github.paulpv.androidbletool.gatt.GattHandler.GattHandlerListener.GattOperation
@@ -20,10 +20,10 @@ import com.github.paulpv.androidbletool.gatt.GattUtils.Companion.toBytes
 import com.github.paulpv.androidbletool.gatt.GattUuids.Companion.toString
 import com.github.paulpv.androidbletool.utils.ListenerManager
 import com.github.paulpv.androidbletool.utils.MyHandler
-import com.github.paulpv.androidbletool.utils.Utils.Companion.TAG
-import com.github.paulpv.androidbletool.utils.Utils.Companion.formatNumber
-import com.github.paulpv.androidbletool.utils.Utils.Companion.isNullOrEmpty
-import com.github.paulpv.androidbletool.utils.Utils.Companion.quote
+import com.github.paulpv.androidbletool.utils.Utils.TAG
+import com.github.paulpv.androidbletool.utils.Utils.formatNumber
+import com.github.paulpv.androidbletool.utils.Utils.isNullOrEmpty
+import com.github.paulpv.androidbletool.utils.Utils.quote
 import java.util.*
 
 /**

@@ -19,7 +19,7 @@ import java.util.NoSuchElementException;
 
 @SuppressWarnings({"WeakerAccess", "unused"})
 public class ExpiringIterableLongSparseArray<V> {
-    private static final String TAG = Utils.Companion.TAG(ExpiringIterableLongSparseArray.class);
+    private static final String TAG = Utils.TAG(ExpiringIterableLongSparseArray.class);
 
     private static final boolean VERBOSE_LOG_START = false;
     private static final boolean VERBOSE_LOG_STOP = false;
@@ -80,7 +80,7 @@ public class ExpiringIterableLongSparseArray<V> {
      * @param <V>
      */
     public static class ItemWrapperImpl<V> implements ItemWrapper<V> {
-        private static final String TAG = Utils.Companion.TAG(ItemWrapperImpl.class);
+        private static final String TAG = Utils.TAG(ItemWrapperImpl.class);
 
         private static final boolean VERBOSE_LOG_EQUALS = false;
         private static final boolean VERBOSE_LOG_HASHCODE = false;
@@ -124,7 +124,7 @@ public class ExpiringIterableLongSparseArray<V> {
             V value = getValue();
             if (verbose) {
                 sb
-                        .append("getKey()=").append(ReflectionUtils.defaultToString(key)).append('{').append(key).append('|').append(Utils.Companion.quote(Long.toHexString(key))).append('}')
+                        .append("getKey()=").append(ReflectionUtils.defaultToString(key)).append('{').append(key).append('|').append(Utils.quote(Long.toHexString(key))).append('}')
                         .append(", getValue()=").append(toString(value, true))
                         .append(", getAddedUptimeMillis()=").append(getAddedUptimeMillis())
                         .append(", getAddedElapsedMillis()=").append(getAddedElapsedMillis())
@@ -289,7 +289,7 @@ public class ExpiringIterableLongSparseArray<V> {
     }
 
     public ExpiringIterableLongSparseArray(String name, Object syncLock, int defaultTimeoutMillis, Looper looper) {
-        if (Utils.Companion.isNullOrEmpty(name)) {
+        if (Utils.isNullOrEmpty(name)) {
             throw new IllegalArgumentException("name must not be null or empty");
         }
 

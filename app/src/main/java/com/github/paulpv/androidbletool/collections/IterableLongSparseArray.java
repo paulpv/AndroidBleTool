@@ -47,7 +47,7 @@ import java.util.Objects;
  */
 public class IterableLongSparseArray<V>
         implements Cloneable {
-    private static final String TAG = Utils.Companion.TAG("IterableLongSparseArray");
+    private static final String TAG = Utils.TAG(IterableLongSparseArray.class);
 
     /**
      * From {@link androidx.core.util.ContainerHelpers}.
@@ -144,7 +144,7 @@ public class IterableLongSparseArray<V>
      * @param initialCapacity initialCapacity
      */
     public IterableLongSparseArray(String debugName, int initialCapacity) {
-        if (Utils.Companion.isNullOrEmpty(debugName)) {
+        if (Utils.isNullOrEmpty(debugName)) {
             debugName = null;
         }
         mDebugName = debugName;

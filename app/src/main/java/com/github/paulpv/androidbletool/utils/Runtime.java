@@ -22,10 +22,10 @@ public class Runtime {
     @NonNull
     public static String throwIllegalArgumentExceptionIfNullOrEmpty(String paramValue,
                                                                     @NonNull String paramName) {
-        if (Utils.Companion.isNullOrEmpty(paramName)) {
+        if (Utils.isNullOrEmpty(paramName)) {
             throw new IllegalArgumentException("paramName must not be null/\"\"");
         }
-        if (Utils.Companion.isNullOrEmpty(paramValue)) {
+        if (Utils.isNullOrEmpty(paramValue)) {
             throw new IllegalArgumentException(paramName + " must not be null/\"\"");
         }
         return paramValue;
