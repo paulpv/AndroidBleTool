@@ -1585,6 +1585,10 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
         handlerMain.obtainAndSendMessage(HandlerMainMessages.onCharacteristicChanged, characteristic)
     }
 
+    //
+    //
+    //
+
     private object HandlerMainMessages {
         /**
          * msg.arg1: ?
@@ -1758,10 +1762,11 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
             Log.e(TAG, logPrefix("pendingGattOperationTimeoutReset(callerName=${quote(callerName)})"))
         }
         pendingGattOperationTimeoutCancel()
+        @Suppress("UnnecessaryVariable") val gatt = getBluetoothGatt(true)
         //if (gatt == null) {
         //    Log.w(TAG, logPrefix(callerName + " pendingGattOperationTimeoutReset: getBluetoothGatt(true) == null; ignoring"));
         //}
-        return getBluetoothGatt(true)
+        return gatt
     }
 
     private fun pendingGattOperationTimeoutSignal(): Boolean {
