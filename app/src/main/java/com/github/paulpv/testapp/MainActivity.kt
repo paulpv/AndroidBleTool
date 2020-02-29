@@ -74,7 +74,7 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
                         Log.e(TAG, "DISCONNECTED!")
                     })
                 }
-                val runAfterConnectSuccess = Runnable {
+                val runBeep = Runnable {
                     val service = GattUuids.PEBBLEBEE_FINDER_SERVICE.uuid
                     val characteristic = GattUuids.PEBBLEBEE_FINDER_CHARACTERISTIC1.uuid
                     val value = PLAY_JINGLE_COUNT_4
@@ -99,12 +99,12 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
                 }
 
                 if (gattHandler.isConnectingOrConnectedAndNotDisconnecting) {
-                    runAfterConnectSuccess.run()
+                    runBeep.run()
                 } else {
                     Log.e(TAG, "CONNECTING")
                     if (!gattHandler.connect(runAfterConnect = Runnable {
                             Log.e(TAG, "CONNECT SUCCESS!")
-                            runAfterConnectSuccess.run()
+                            runBeep.run()
                         }, runAfterFail = Runnable {
                             Log.e(TAG, "CONNECT FAIL!")
                             runDisconnect.run()
