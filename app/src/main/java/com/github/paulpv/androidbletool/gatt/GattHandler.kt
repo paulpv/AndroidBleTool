@@ -13,11 +13,6 @@ import com.github.paulpv.androidbletool.BluetoothUtils.throwExceptionIfInvalidBl
 import com.github.paulpv.androidbletool.BuildConfig
 import com.github.paulpv.androidbletool.gatt.GattHandler.GattHandlerListener.DisconnectReason
 import com.github.paulpv.androidbletool.gatt.GattHandler.GattHandlerListener.GattOperation
-import com.github.paulpv.androidbletool.gatt.GattUtils.Companion.createBluetoothGattCharacteristic
-import com.github.paulpv.androidbletool.gatt.GattUtils.Companion.safeClose
-import com.github.paulpv.androidbletool.gatt.GattUtils.Companion.safeDisconnect
-import com.github.paulpv.androidbletool.gatt.GattUtils.Companion.toBytes
-import com.github.paulpv.androidbletool.gatt.GattUuids.Companion.toString
 import com.github.paulpv.androidbletool.utils.ListenerManager
 import com.github.paulpv.androidbletool.utils.MyHandler
 import com.github.paulpv.androidbletool.utils.Utils.TAG
@@ -139,7 +134,7 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
          * @param elapsedMillis The actual elapsed milliseconds
          * @return true to forcibly stay connected, false to allow disconnect
          */
-        fun onDeviceOperationTimeout(
+        open fun onDeviceOperationTimeout(
             gattHandler: GattHandler?,
             operation: GattOperation?,
             timeoutMillis: Long,
@@ -152,7 +147,7 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
          * @param gattHandler GattHandler
          * @return true to forcibly disconnect, false to not forcibly disconnect
          */
-        fun onDeviceConnecting(
+        open fun onDeviceConnecting(
             gattHandler: GattHandler?
         ): Boolean {
             return false
@@ -163,7 +158,7 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
          * @param elapsedMillis long
          * @return true to forcibly disconnect, false to not forcibly disconnect
          */
-        fun onDeviceConnected(
+        open fun onDeviceConnected(
             gattHandler: GattHandler?,
             elapsedMillis: Long
         ): Boolean {
@@ -184,7 +179,7 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
          * @param elapsedMillis elapsedMillis
          * @return true to automatically call [.removeListener]
          */
-        fun onDeviceDisconnected(
+        open fun onDeviceDisconnected(
             gattHandler: GattHandler?,
             status: Int,
             reason: DisconnectReason?,
@@ -200,7 +195,7 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
          * @param elapsedMillis elapsedMillis
          * @return true to forcibly disconnect, false to not forcibly disconnect
         </BluetoothGattService> */
-        fun onDeviceServicesDiscovered(
+        open fun onDeviceServicesDiscovered(
             gattHandler: GattHandler?,
             services: List<BluetoothGattService>?,
             success: Boolean,
@@ -216,7 +211,7 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
          * @param elapsedMillis  elapsedMillis
          * @return true to forcibly disconnect, false to not forcibly disconnect
          */
-        fun onDeviceCharacteristicRead(
+        open fun onDeviceCharacteristicRead(
             gattHandler: GattHandler?,
             characteristic: BluetoothGattCharacteristic?,
             success: Boolean,
@@ -232,7 +227,7 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
          * @param elapsedMillis  elapsedMillis
          * @return true to forcibly disconnect, false to not forcibly disconnect
          */
-        fun onDeviceCharacteristicWrite(
+        open fun onDeviceCharacteristicWrite(
             gattHandler: GattHandler?,
             characteristic: BluetoothGattCharacteristic?,
             success: Boolean,
@@ -248,7 +243,7 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
          * @param elapsedMillis  elapsedMillis
          * @return true to forcibly disconnect, false to not forcibly disconnect
          */
-        fun onDeviceCharacteristicSetNotification(
+        open fun onDeviceCharacteristicSetNotification(
             gattHandler: GattHandler?,
             characteristic: BluetoothGattCharacteristic?,
             success: Boolean,
@@ -262,7 +257,7 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
          * @param characteristic BluetoothGattCharacteristic
          * @return true to forcibly disconnect, false to not forcibly disconnect
          */
-        fun onDeviceCharacteristicChanged(
+        open fun onDeviceCharacteristicChanged(
             gattHandler: GattHandler?,
             characteristic: BluetoothGattCharacteristic?
         ): Boolean {
@@ -276,7 +271,7 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
          * @param elapsedMillis elapsedMillis
          * @return true to forcibly disconnect, false to not forcibly disconnect
          */
-        fun onDeviceReadRemoteRssi(
+        open fun onDeviceReadRemoteRssi(
             gattHandler: GattHandler?,
             rssi: Int,
             success: Boolean,
@@ -556,7 +551,7 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
         if (reconnecting) {
             pendingGattOperationInfo = null
             postDelayed(Runnable {
-                safeDisconnect("reconnectIfConnecting", bluetoothGatt)
+                GattUtils.safeDisconnect("reconnectIfConnecting", bluetoothGatt)
                 postDelayed(Runnable {
                     if (!connectInternal(
                             "reconnectIfConnecting",
@@ -619,7 +614,7 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
                     // NOTE:(pv) mBluetoothGatt is only set here and in #onDeviceDisconnected
                     //
                     if (bluetoothGatt != null) {
-                        safeDisconnect("$callerNameFinal.run: GattUtils.safeDisconnect(mBluetoothGatt)", bluetoothGatt)
+                        GattUtils.safeDisconnect("$callerNameFinal.run: GattUtils.safeDisconnect(mBluetoothGatt)", bluetoothGatt)
                         Log.v(TAG, logPrefix("$callerNameFinal.run: +mBluetoothGatt.connect()"))
                         bluetoothGatt!!.connect()
                         Log.v(TAG, logPrefix("$callerNameFinal.run: -mBluetoothGatt.connect()"))
@@ -683,7 +678,7 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
                 //Log.e(TAG, logPrefix("+mBackgroundPendingOperationSignal.cancel()"));
                 pendingGattOperationTimeoutCancel()
                 //Log.e(TAG, logPrefix("-mBackgroundPendingOperationSignal.cancel()"));
-                if (safeDisconnect("disconnect(timeoutMillis=$timeoutMillis)", bluetoothGatt)) {
+                if (GattUtils.safeDisconnect("disconnect(timeoutMillis=$timeoutMillis)", bluetoothGatt)) {
                     //
                     // Timeout is needed since BluetoothGatt#disconnect() doesn't always call onConnectionStateChange(..., newState=STATE_DISCONNECTED)
                     //
@@ -745,7 +740,7 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
             isWaitingForCharacteristicSetNotification = false
             // Only set here and in #disconnect
             isDisconnecting = false
-            safeClose("onDeviceDisconnected", gatt)
+            GattUtils.safeClose("onDeviceDisconnected", gatt)
             postDelayed(Runnable {
                 if (bluetoothGatt != null) {
                     Log.w(TAG, logPrefix("onDeviceDisconnected: mBluetoothGatt != null; ignoring"))
@@ -1001,21 +996,21 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
             while (i < servicesSize) {
                 service = services!![i]
                 // @formatter:off
-                Log.v(TAG, logPrefix("$callerName:                    services[${formatNumber(i.toLong(), 2)}]=${toString(service)}"))
+                Log.v(TAG, logPrefix("$callerName:                    services[${formatNumber(i.toLong(), 2)}]=${GattUuids.toString(service)}"))
                 uuid = service.uuid
                 Log.v(TAG, logPrefix("$callerName:          services[${formatNumber(i.toLong(), 2)}].getUuid()=$uuid"))
                 serviceGet = gatt.getService(uuid)
-                Log.v(TAG, logPrefix("$callerName:           gatt.getService(uuid)=${toString(serviceGet)}"))
+                Log.v(TAG, logPrefix("$callerName:           gatt.getService(uuid)=${GattUuids.toString(serviceGet)}"))
                 characteristics = service.characteristics
                 var  j = 0
                 val  characteristicsSize = characteristics.size
                 while (j < characteristicsSize){
                     characteristic = characteristics[j]
-                    Log.v(TAG, logPrefix("$callerName:             characteristics[${formatNumber(j.toLong(), 2)}]=${toString(characteristic)}"))
+                    Log.v(TAG, logPrefix("$callerName:             characteristics[${formatNumber(j.toLong(), 2)}]=${GattUuids.toString(characteristic)}"))
                     uuid = characteristic.uuid
                     Log.v(TAG, logPrefix("$callerName:   characteristics[${formatNumber(j.toLong(), 2)}].getUuid()=$uuid"))
                     characteristicGet = service.getCharacteristic(uuid)
-                    Log.v(TAG, logPrefix("$callerName: service.getCharacteristic(uuid)=${toString(characteristicGet)}"))
+                    Log.v(TAG, logPrefix("$callerName: service.getCharacteristic(uuid)=${GattUuids.toString(characteristicGet)}"))
                     j++
                 }
                 Log.v(TAG, logPrefix("$callerName: ------------------------------------------"))
@@ -1144,7 +1139,7 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
         serviceUuid: UUID, characteristicUuid: UUID,
         success: Boolean
     ) {
-        val characteristic = createBluetoothGattCharacteristic(serviceUuid, characteristicUuid)
+        val characteristic = GattUtils.createBluetoothGattCharacteristic(serviceUuid, characteristicUuid)
         onDeviceCharacteristicRead(characteristic, success)
     }
 
@@ -1210,7 +1205,7 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
         return characteristicWrite(
             serviceUuid,
             characteristicUuid,
-            toBytes(value),
+            GattUtils.toBytes(value),
             characteristicWriteType,
             timeoutMillis,
             runAfterSuccess,
@@ -1236,7 +1231,7 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
         return characteristicWrite(
             serviceUuid,
             characteristicUuid,
-            toBytes(value, formatType, offset),
+            GattUtils.toBytes(value, formatType, offset),
             characteristicWriteType,
             timeoutMillis,
             runAfterSuccess,
@@ -1263,7 +1258,7 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
         return characteristicWrite(
             serviceUuid,
             characteristicUuid,
-            toBytes(mantissa, exponent, formatType, offset),
+            GattUtils.toBytes(mantissa, exponent, formatType, offset),
             characteristicWriteType,
             timeoutMillis,
             runAfterSuccess,
@@ -1364,7 +1359,7 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
     }
 
     private fun onDeviceCharacteristicWrite(serviceUuid: UUID, characteristicUuid: UUID, success: Boolean) {
-        val characteristic = createBluetoothGattCharacteristic(serviceUuid, characteristicUuid)
+        val characteristic = GattUtils.createBluetoothGattCharacteristic(serviceUuid, characteristicUuid)
         onDeviceCharacteristicWrite(characteristic, success)
     }
 
@@ -1414,7 +1409,7 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
     fun characteristicSetNotification(
         serviceUuid: UUID, characteristicUuid: UUID,
         characteristicNotificationDescriptorType: CharacteristicNotificationDescriptorType,
-        setDescriptorClientCharacteristicConfig: Boolean,
+        setDescriptorClientCharacteristicConfig: Boolean = true,
         timeoutMillis: Long = defaultOperationTimeoutMillis.toLong(),
         runAfterSuccess: Runnable? = null, runAfterFail: Runnable? = null
     ): Boolean {
@@ -1539,7 +1534,7 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
     }
 
     private fun onDeviceCharacteristicSetNotification(serviceUuid: UUID, characteristicUuid: UUID, success: Boolean) {
-        val characteristic = createBluetoothGattCharacteristic(serviceUuid, characteristicUuid)
+        val characteristic = GattUtils.createBluetoothGattCharacteristic(serviceUuid, characteristicUuid)
         onDeviceCharacteristicSetNotification(characteristic, success)
     }
 
@@ -1620,7 +1615,7 @@ class GattHandler internal constructor(gattManager: GattManager, deviceAddress: 
             }
             HandlerMainMessages.SolicitedDisconnectInternalTimeout -> {
                 Log.v(TAG, logPrefix("handleMessage: SolicitedDisconnectInternalTimeout"))
-                val runAfterDisconnect = msg.obj as Runnable
+                val runAfterDisconnect = msg.obj as? Runnable
                 onDeviceDisconnected(bluetoothGatt, -1, DisconnectReason.SolicitedDisconnectTimeout, false, runAfterDisconnect)
             }
             HandlerMainMessages.onCharacteristicChanged -> {
