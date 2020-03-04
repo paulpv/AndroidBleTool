@@ -166,6 +166,6 @@ open class ListenerManager<T>(name: String) {
     }
 
     @Suppress("MemberVisibilityCanBePrivate")
-    protected fun onListenersUpdated(listenersSize: Int) {
+    protected fun onListenersUpdated(@Suppress("UNUSED_PARAMETER") listenersSize: Int) {
     }
 }
