@@ -21,14 +21,16 @@ class MainApp : Application(), BleTool.BleToolApplication {
             get() = MainActivity::class.java
         override val channelDescription: String
             get() = getString(R.string.notification_scanning_channel_description)
-        override val contentTitle: String
-            get() = getString(R.string.app_name)
 
         override fun getSmallIcon(isForegrounded: Boolean): Int {
             return if (isForegrounded) R.drawable.ic_launcher_foreground else R.drawable.ic_launcher_background
         }
 
-        override fun getText(isBluetoothEnabled: Boolean): String {
+        override val contentTitle: String
+            get() = getString(R.string.app_name)
+
+
+        override fun getContentText(isBluetoothEnabled: Boolean): String {
             val resId = if (isBluetoothEnabled) R.string.scanning else R.string.waiting_for_bluetooth
             return getString(resId)
         }

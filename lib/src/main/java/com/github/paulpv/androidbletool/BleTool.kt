@@ -81,11 +81,11 @@ class BleTool(
 
         val channelDescription: String
 
-        val contentTitle: String
-
         fun getSmallIcon(isForegrounded: Boolean): Int
 
-        fun getText(isBluetoothEnabled: Boolean): String
+        val contentTitle: String
+
+        fun getContentText(isBluetoothEnabled: Boolean): String
     }
 
     interface BleToolConfiguration {
@@ -646,7 +646,7 @@ class BleTool(
         get() = configuration.scanningNotificationInfo.getSmallIcon(isForegrounded)
 
     private val notificationText: String
-        get() = configuration.scanningNotificationInfo.getText(isBluetoothEnabled)
+        get() = configuration.scanningNotificationInfo.getContentText(isBluetoothEnabled)
 
     private fun createNotification(
         context: Context,
