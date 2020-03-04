@@ -7,7 +7,7 @@ import androidx.recyclerview.widget.RecyclerView
 class DevicesRecyclerView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) :
     RecyclerView(context, attrs, defStyleAttr) {
     //companion object {
-    //    private val TAG = Utils.TAG(DevicesRecyclerView::class.java)
+    //    private val TAG = TAG(DevicesRecyclerView::class.java)
     //}
 
     override fun onAttachedToWindow() {

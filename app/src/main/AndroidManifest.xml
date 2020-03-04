@@ -4,23 +4,6 @@
     package="com.github.paulpv.androidbletool"
     >
 
-    <!--
-    Per https://developer.android.com/guide/topics/connectivity/bluetooth#Permissions
-    -->
-    <uses-permission android:name="android.permission.BLUETOOTH"/>
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-
-    <!--
-    Needed for scanning in the background
-    -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-
-    <!--
-    Needed to resume scanning after reboot
-    -->
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-
     <application
         android:name="com.github.paulpv.testapp.MainApp"
         android:allowBackup="true"
@@ -40,21 +23,6 @@
             </intent-filter>
         </activity>
         <activity android:name="com.github.paulpv.testapp.DeviceActivity" />
-
-        <service android:name=".BleTool$NotificationService" />
-
-        <receiver android:name=".BleTool$BleDeviceScanReceiver" />
-
-        <receiver android:name=".BleTool$BootCompletedReceiver">
-            <intent-filter>
-                <category android:name="android.intent.category.DEFAULT" />
-                <!-- Implicit Broadcast Exceptions
-                 https://developer.android.com/guide/components/broadcast-exceptions.html
-                 -->
-                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
 
     </application>
 

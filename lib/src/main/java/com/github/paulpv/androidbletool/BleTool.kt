@@ -23,6 +23,7 @@ import com.github.paulpv.androidbletool.exceptions.BleScanException
 import com.github.paulpv.androidbletool.gatt.GattManager
 import com.github.paulpv.androidbletool.utils.ReflectionUtils
 import com.github.paulpv.androidbletool.utils.Utils
+import com.github.paulpv.androidbletool.utils.Utils.TAG
 import com.livinglifetechway.quickpermissions_kotlin.runWithPermissions
 import com.livinglifetechway.quickpermissions_kotlin.util.PermissionsUtil
 import java.util.concurrent.TimeUnit
@@ -40,7 +41,7 @@ class BleTool(
     looper: Looper? = null
 ) {
     companion object {
-        private val TAG = Utils.TAG(BleTool::class.java)
+        private val TAG = TAG(BleTool::class.java)
 
         val DEVICE_SCAN_TIMEOUT_MILLIS_DEFAULT: Int = if (BuildConfig.DEBUG) {
             33 * 1000 // 33 seconds == 3300 milliseconds
@@ -87,14 +88,28 @@ class BleTool(
         val bleTool: BleTool
     }
 
-    interface BleToolConfiguration {
+    interface BleToolScanningNotificationInfo {
         /**
          * May be calculated dynamically
          */
-        val scanningNotificationActivityClass: Class<out Activity>
+        val activityClass: Class<out Activity>
+
+        val channelDescription: String
+
+        val contentTitle: String
+
+        fun getSmallIcon(isForegrounded: Boolean): Int
+
+        fun getText(isBluetoothEnabled: Boolean): String
+    }
+
+    interface BleToolConfiguration {
+        val scanningNotificationInfo: BleToolScanningNotificationInfo
 
         fun addScanFilters(scanFilters: MutableList<ScanFilter>)
     }
+
+    //abstract class ItemWrapperBleScanResult : ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>
 
     interface DeviceScanObserver {
         fun onDeviceScanError(bleTool: BleTool, e: Throwable): Boolean
@@ -178,7 +193,7 @@ class BleTool(
     private abstract class ExplicitBroadcastReceiver(TAG: String, private val context: Context) : BroadcastReceiver() {
 
         @Suppress("PrivatePropertyName")
-        private val TAG = Utils.TAG(TAG)
+        private val TAG = TAG(TAG)
 
         abstract val intentFilter: IntentFilter
 
@@ -188,9 +203,7 @@ class BleTool(
             Log.i(TAG, "+register()")
             if (!isRegistered) {
                 Log.v(TAG, "register: context.registerReceiver(this, intentFilter)")
-                context.registerReceiver(this, intentFilter)
-
-                isRegistered = true
+                isRegistered = context.registerReceiver(this, intentFilter) != null
             }
             Log.i(TAG, "-register()")
         }
@@ -200,6 +213,7 @@ class BleTool(
             if (isRegistered) {
                 Log.v(TAG, "register: context.unregisterReceiver(this)")
                 context.unregisterReceiver(this)
+                isRegistered = false
             }
             Log.i(TAG, "-unregister()")
         }
@@ -215,7 +229,7 @@ class BleTool(
     }
 
     private class AppProcessStartReceiver(context: Context) :
-        ExplicitBroadcastReceiver(Utils.TAG(AppProcessStartReceiver::class.java), context) {
+        ExplicitBroadcastReceiver(TAG(AppProcessStartReceiver::class.java), context) {
         override val intentFilter: IntentFilter
             get() {
                 val intentFilter = IntentFilter()
@@ -232,7 +246,7 @@ class BleTool(
     }
 
     private class AppProcessRunningStateChangeReceiver(context: Context) :
-        ExplicitBroadcastReceiver(Utils.TAG(AppProcessRunningStateChangeReceiver::class.java), context) {
+        ExplicitBroadcastReceiver(TAG(AppProcessRunningStateChangeReceiver::class.java), context) {
         override val intentFilter: IntentFilter
             get() {
                 val intentFilter = IntentFilter()
@@ -276,8 +290,6 @@ class BleTool(
     }
 
     private val looper = looper ?: Looper.getMainLooper()
-    private val scanningNotificationActivityClass: Class<out Activity>
-        get() = configuration.scanningNotificationActivityClass
     private val scanningPendingIntent = BleDeviceScanReceiver.newPendingIntent(application, SCAN_RECEIVER_REQUEST_CODE)
     private var scanningCallbacks = object : ScanCallback() {
         override fun onScanFailed(errorCode: Int) {
@@ -311,6 +323,7 @@ class BleTool(
 
     @Suppress("PrivatePropertyName")
     private var _USE_SCAN_API_VERSION = Build.VERSION.SDK_INT
+
     @Suppress("PropertyName")
     var USE_SCAN_API_VERSION: Int
         get() = _USE_SCAN_API_VERSION
@@ -345,16 +358,20 @@ class BleTool(
 
     @Suppress("PrivatePropertyName")
     private val PREFS_FILENAME = "com.github.paulpv.androidbletool.BleTool.prefs"
+
     @Suppress("PrivatePropertyName")
     private val PREF_PERSISTENT_SCANNING_STARTED_MILLIS = "persistentScanningStartedMillis"
+
     @Suppress("PrivatePropertyName")
     private val PREF_PERSISTENT_SCANNING_BACKGROUND_PID = "persistentScanningBackgroundPid"
     private val sharedPreferences = application.getSharedPreferences(PREFS_FILENAME, Context.MODE_PRIVATE)
+
     @Suppress("PrivatePropertyName")
     private val PERSISTENT_SCANNING_STARTED_MILLIS_UNDEFINED = 0L
     private var persistentScanningStartedMillis: Long
         get() = sharedPreferences!!.getLong(PREF_PERSISTENT_SCANNING_STARTED_MILLIS, PERSISTENT_SCANNING_STARTED_MILLIS_UNDEFINED)
         private set(value) = sharedPreferences!!.edit(commit = true) { putLong(PREF_PERSISTENT_SCANNING_STARTED_MILLIS, value) }
+
     @Suppress("PrivatePropertyName")
     private val PERSISTENT_SCANNING_BACKGROUND_PID_UNDEFINED = 0
     private var persistentScanningBackgroundPid: Int
@@ -450,26 +467,19 @@ class BleTool(
             }
         })
 
-        recentlyNearbyDevices.addListener(object : ExpiringIterableLongSparseArray.ExpiringIterableLongSparseArrayListener<BleScanResult> {
-            override fun onItemAdded(key: Long, index: Int, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) {
-                //Log.i(TAG, "onItemAdded: key=$key, index=$index, value=$value")
+        recentlyNearbyDevices.addListener(object :
+            ExpiringIterableLongSparseArray.ExpiringIterableLongSparseArrayListener<BleScanResult> {
+            override fun onItemAdded(key: Long, index: Int, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) =
                 this@BleTool.onDeviceAdded(item)
-            }
 
-            override fun onItemUpdated(key: Long, index: Int, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) {
-                //Log.w(TAG, "onItemUpdated: key=$key, index=$index, value=$value, ageMillis=$ageMillis, timeoutMillis=$timeoutMillis")
+            override fun onItemUpdated(key: Long, index: Int, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) =
                 this@BleTool.onDeviceUpdated(item)
-            }
 
-            override fun onItemExpiring(key: Long, index: Int, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>): Boolean {
-                //Log.w(TAG, "onItemExpiring: key=$key, index=$index, value=$value, ageMillis=$ageMillis, timeoutMillis=$timeoutMillis")
-                return this@BleTool.onDeviceExpiring(item)
-            }
+            override fun onItemExpiring(key: Long, index: Int, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>): Boolean =
+                this@BleTool.onDeviceExpiring(item)
 
-            override fun onItemRemoved(key: Long, index: Int, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) {
-                //Log.i(TAG, "onItemRemoved: key=$key, index=$index, value=$value, ageMillis=$ageMillis, timeoutMillis=$timeoutMillis, expired=$expired")
+            override fun onItemRemoved(key: Long, index: Int, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) =
                 this@BleTool.onDeviceRemoved(item)
-            }
         })
 
         if (Build.VERSION.SDK_INT >= 26) {
@@ -478,7 +488,7 @@ class BleTool(
                 SCANNING_NOTIFICATION_CHANNEL_ID,
                 SCANNING_NOTIFICATION_CHANNEL_NAME,
                 NotificationManagerCompat.IMPORTANCE_LOW,
-                getString(R.string.notification_scanning_channel_description)
+                configuration.scanningNotificationInfo.channelDescription
             )
         }
 
@@ -624,17 +634,23 @@ class BleTool(
         notificationManager.createNotificationChannel(channel)
     }
 
+    private val notificationIcon: Int
+        get() = configuration.scanningNotificationInfo.getSmallIcon(isForegrounded)
+
+    private val notificationText: String
+        get() = configuration.scanningNotificationInfo.getText(isBluetoothEnabled)
+
     private fun createNotification(
         context: Context,
         @Suppress("SameParameterValue") channelID: String,
         @Suppress("SameParameterValue") requestCode: Int,
         text: String
     ): Notification {
-        val intent = Intent(application, scanningNotificationActivityClass)
+        val intent = Intent(application, configuration.scanningNotificationInfo.activityClass)
         val pendingIntent = PendingIntent.getActivity(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT)
         return NotificationCompat.Builder(context, channelID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle(getString(R.string.app_name))
+            .setSmallIcon(notificationIcon)
+            .setContentTitle(configuration.scanningNotificationInfo.contentTitle)
             .setContentText(text)
             .setShowWhen(false)
             .setChannelId(channelID)
@@ -648,9 +664,7 @@ class BleTool(
             return
         }
         if (isPersistentScanningEnabled) {
-            val resId = if (isBluetoothEnabled) R.string.scanning else R.string.waiting_for_bluetooth
-            val text = getString(resId)
-            val notification = createNotification(application, SCANNING_NOTIFICATION_CHANNEL_ID, SCANNING_NOTIFICATION_REQUEST_CODE, text)
+            val notification = createNotification(application, SCANNING_NOTIFICATION_CHANNEL_ID, SCANNING_NOTIFICATION_REQUEST_CODE, notificationText)
 
             if (foregroundNotification == null) {
                 foregroundNotification = notification
@@ -678,6 +692,9 @@ class BleTool(
 
     private var currentActivity: Activity? = null
     private val deviceScanObservers: MutableSet<DeviceScanObserver> = mutableSetOf()
+
+    private val isForegrounded: Boolean
+        get() = currentActivity != null
 
     private fun onActivityCreated(activity: Activity) {
         Log.e(TAG, "onActivityCreated(activity=$activity)")
@@ -768,21 +785,37 @@ class BleTool(
 
     private fun persistentScanningResumeIfEnabled(caller: String, updateScanningNotification: Boolean) {
         if (isPersistentScanningEnabled) {
-            Log.i(TAG, "$caller->persistentScanningResumeIfEnabled; isPersistentScanningEnabled == true; RESUME")
-            val success = persistentScanningResume(caller, updateScanningNotification)
-            Log.i(TAG, "persistentScanningResumeIfEnabled: success=$success")
+            //Log.i(TAG, "$caller->persistentScanningResumeIfEnabled; isPersistentScanningEnabled == true; RESUME")
+            @Suppress("UNUSED_VARIABLE") val success = persistentScanningResume(caller, updateScanningNotification)
+            //Log.i(TAG, "persistentScanningResumeIfEnabled: success=$success")
+            /*
+            if (success) {
+                Log.i(TAG, "persistentScanningResumeIfEnabled: success")
+            } else {
+                Log.e(TAG, "persistentScanningResumeIfEnabled: failed")
+                // TODO:(pv) notify unable to resume
+            }
+            */
         } else {
-            Log.i(TAG, "$caller->persistentScanningResumeIfEnabled; isPersistentScanningEnabled == false; ignoring")
+            //Log.i(TAG, "$caller->persistentScanningResumeIfEnabled; isPersistentScanningEnabled == false; ignoring")
         }
     }
 
     private fun persistentScanningPauseIfEnabled(caller: String, updateScanningNotification: Boolean) {
         if (isPersistentScanningEnabled) {
-            Log.i(TAG, "$caller->persistentScanningPauseIfEnabled; isPersistentScanningEnabled == true; PAUSE")
-            val success = persistentScanningPause(caller, updateScanningNotification)
-            Log.i(TAG, "persistentScanningPauseIfEnabled: success=$success")
+            //Log.i(TAG, "$caller->persistentScanningPauseIfEnabled; isPersistentScanningEnabled == true; PAUSE")
+            @Suppress("UNUSED_VARIABLE") val success = persistentScanningPause(caller, updateScanningNotification)
+            //Log.i(TAG, "persistentScanningPauseIfEnabled: success=$success")
+            /*
+            if (success) {
+                Log.i(TAG, "persistentScanningPauseIfEnabled: success")
+            } else {
+                Log.e(TAG, "persistentScanningPauseIfEnabled: failed")
+                // TODO:(pv) notify unable to pause
+            }
+            */
         } else {
-            Log.i(TAG, "$caller->persistentScanningPauseIfEnabled; isPersistentScanningEnabled == false; ignoring")
+            //Log.i(TAG, "$caller->persistentScanningPauseIfEnabled; isPersistentScanningEnabled == false; ignoring")
         }
     }
 
@@ -833,6 +866,9 @@ class BleTool(
             }
             return true
         }
+
+        //  TODO:pv) No handlers: Show **persistent** notification [to keep app process alive] requesting permission(s)
+        //...
 
         return true
     }
@@ -927,6 +963,8 @@ class BleTool(
 
         var success = false
 
+        // TODO:(pv) Test pause/resume when BT is off for exceptions/errors
+
         try {
 
             isActivelyScanning = false
@@ -951,6 +989,8 @@ class BleTool(
         }
 
         if (isPersistentScanningEnabled) {
+            // TODO:(pv) Reconsider only emmitting devices when paused
+            //...
             devicesUpdatedDebounce()
             if (success) {
                 if (USE_RESUME_PAUSE_HANDLER) {
@@ -983,6 +1023,7 @@ class BleTool(
      */
     @Suppress("PrivatePropertyName")
     private val MINIMUM_RELIABLE_WORK_REQUEST_DELAY_MILLIS = 15 * 60 * 1000L // 15 minutes
+
     @Suppress("PrivatePropertyName")
     private val DELAYED_SCANNING_FAILSAFE_RESUME_MILLIS = MINIMUM_RELIABLE_WORK_REQUEST_DELAY_MILLIS
 
@@ -999,6 +1040,7 @@ class BleTool(
 
     @Suppress("PrivatePropertyName")
     private val MESSAGE_WHAT_PAUSE = 100
+
     @Suppress("PrivatePropertyName")
     private val MESSAGE_WHAT_RESUME = 101
 
@@ -1089,6 +1131,8 @@ class BleTool(
                 // @formatter:on
             }
             // TODO:(pv) Notify user to reset bluetooth or reboot phone
+            // ... OR AUTOMATICALLY RESET BLUETOOTH?
+            // TODO:(pv) Test if turning bluetooth off and back on ACTUALLY fixes this situation
         } else {
             @Suppress("SimplifyBooleanWithConstants")
             if (false && BuildConfig.DEBUG) {
@@ -1134,7 +1178,7 @@ class BleTool(
     }
 
     private fun onScanFailed(caller: String, errorCode: Int) {
-        onScanFailed(caller, BluetoothUtils.Companion.BleScanThrowable(errorCode))
+        onScanFailed(caller, BluetoothUtils.BleScanThrowable(errorCode))
     }
 
     private fun onScanFailed(caller: String, throwable: Throwable) {
@@ -1193,8 +1237,9 @@ class BleTool(
         val scanResult = bleScanResult.scanResult
         val bleDevice = scanResult.device
         val macAddressString = bleDevice.address
+        //val rssi = bleScanResult.rssi
         // @formatter:off
-        Log.i(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceAdded: ADDED!")
+        Log.i(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceAdded: ADDED! bleScanResult=$bleScanResult")
         // @formatter:on
         deviceScanObservers.forEach { it.onDeviceAdded(this, item) }
     }
@@ -1208,7 +1253,7 @@ class BleTool(
             val macAddressString = bleDevice.address
             val ageMillis = item.addedElapsedMillis
             // @formatter:off
-            Log.v(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceUpdated: UPDATED! ageMillis=${Utils.getTimeDurationFormattedString(ageMillis)}")
+            Log.v(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceUpdated: UPDATED! ageMillis=${Utils.getTimeDurationFormattedString(ageMillis)}, bleScanResult=$bleScanResult")
             // @formatter:on
         }
         recentlyNearbyDevicesUpdatedDebounce.add(item)
@@ -1253,7 +1298,7 @@ class BleTool(
         val bleDevice = scanResult.device
         val macAddressString = bleDevice.address
         // @formatter:off
-        Log.i(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceRemoved: REMOVED!")
+        Log.i(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceRemoved: REMOVED! bleScanResult=$bleScanResult")
         // @formatter:on
         recentlyNearbyDevicesUpdatedDebounce.remove(item)
         deviceScanObservers.forEach { it.onDeviceRemoved(this, item) }

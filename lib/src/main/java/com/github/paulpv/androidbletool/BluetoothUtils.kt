@@ -10,10 +10,11 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import com.github.paulpv.androidbletool.utils.Utils
+import com.github.paulpv.androidbletool.utils.Utils.TAG
 import java.util.*
 
 object BluetoothUtils {
-    private val TAG = Utils.TAG(BluetoothUtils::class.java)
+    private val TAG = TAG(BluetoothUtils::class.java)
 
     @Suppress("MemberVisibilityCanBePrivate")
     fun isBluetoothSupported(context: Context): Boolean {

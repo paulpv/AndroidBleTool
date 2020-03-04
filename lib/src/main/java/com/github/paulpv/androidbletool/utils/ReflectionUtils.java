@@ -78,7 +78,7 @@ public class ReflectionUtils {
     }
 
     public static <T> String getInstanceSignature(@NonNull T instance) {
-        Runtime.throwIllegalArgumentExceptionIfNull(instance, "instance");
+        RuntimeUtils.throwIllegalArgumentExceptionIfNull(instance, "instance");
 
         StringBuilder sb = new StringBuilder();
 
@@ -114,7 +114,7 @@ public class ReflectionUtils {
     }
 
     public static boolean isAssignableFrom(Object instanceExpected, Object instanceActual) {
-        Runtime.throwIllegalArgumentExceptionIfNull(instanceExpected, "instanceExpected");
+        RuntimeUtils.throwIllegalArgumentExceptionIfNull(instanceExpected, "instanceExpected");
 
         if (instanceActual == null) {
             return false;

@@ -3,9 +3,9 @@ package com.github.paulpv.androidbletool.gatt
 import android.content.Context
 import android.os.Looper
 import android.util.Log
-import com.github.paulpv.androidbletool.BluetoothUtils.throwExceptionIfInvalidBluetoothAddress
 import com.github.paulpv.androidbletool.collections.IterableLongSparseArray
 import com.github.paulpv.androidbletool.utils.Utils.TAG
+import com.github.paulpv.androidbletool.BluetoothUtils.throwExceptionIfInvalidBluetoothAddress
 
 class GattManager constructor(val context: Context, looper: Looper? = null) {
     companion object {

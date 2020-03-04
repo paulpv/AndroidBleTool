@@ -21,6 +21,7 @@ import com.github.paulpv.androidbletool.exceptions.BleScanException
 import com.github.paulpv.androidbletool.gatt.GattHandler
 import com.github.paulpv.androidbletool.gatt.GattUuids
 import com.github.paulpv.androidbletool.utils.Utils
+import com.github.paulpv.androidbletool.utils.Utils.TAG
 import com.github.paulpv.testapp.adapter.DeviceInfo
 import com.github.paulpv.testapp.adapter.DevicesAdapter
 import com.github.paulpv.testapp.adapter.SortBy
@@ -28,7 +29,7 @@ import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
     companion object {
-        private val TAG = Utils.TAG(MainActivity::class.java)
+        private val TAG = TAG(MainActivity::class.java)
 
         private val PLAY_JINGLE_COUNT_1 = byteArrayOf(0x01, 0x00)
         private val PLAY_JINGLE_COUNT_2 = byteArrayOf(0x01, 0x00, 0x00)

@@ -11,12 +11,12 @@ import androidx.recyclerview.widget.RecyclerView
 import com.github.paulpv.androidbletool.BleScanResult
 import com.github.paulpv.androidbletool.R
 import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
-import com.github.paulpv.androidbletool.utils.Utils
+import com.github.paulpv.androidbletool.utils.Utils.TAG
 import java.util.*
 
 class DevicesAdapter(var context: Context, initialSortBy: SortBy) : RecyclerView.Adapter<DevicesViewHolder>() {
     companion object {
-        private val TAG = Utils.TAG(DevicesAdapter::class.java)
+        private val TAG = TAG(DevicesAdapter::class.java)
 
         private const val AUTO_UPDATE_ENABLE = false
         private const val LOG_AUTO_UPDATE = true

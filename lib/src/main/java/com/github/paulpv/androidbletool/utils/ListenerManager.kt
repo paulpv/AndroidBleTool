@@ -2,17 +2,18 @@ package com.github.paulpv.androidbletool.utils
 
 import android.util.Log
 import com.github.paulpv.androidbletool.BuildConfig
+import com.github.paulpv.androidbletool.utils.Utils.TAG
 import java.util.*
 
 open class ListenerManager<T>(name: String) {
     companion object {
-        private val TAG = Utils.TAG(ListenerManager::class.java)
+        private val TAG = TAG(ListenerManager::class.java)
 
         @Suppress("SimplifyBooleanWithConstants")
         private val VERBOSE_LOG = false && BuildConfig.DEBUG
     }
 
-    private val name: String = Utils.quote(Runtime.toNonNullNonEmpty(name, "name").trim { it <= ' ' })
+    private val name: String = Utils.quote(RuntimeUtils.toNonNullNonEmpty(name, "name").trim { it <= ' ' })
     private val listeners: MutableSet<T>
     private val listenersToAdd: MutableSet<T>
     private val listenersToRemove: MutableSet<T>

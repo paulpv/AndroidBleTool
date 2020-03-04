@@ -8,7 +8,7 @@ import android.bluetooth.BluetoothGattCallback
 import android.content.Context
 import android.os.Build
 import android.util.Log
-import com.github.paulpv.androidbletool.utils.Utils
+import com.github.paulpv.androidbletool.utils.Utils.TAG
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 
@@ -27,7 +27,7 @@ import java.lang.reflect.Method
  */
 class BluetoothGattCompat(private val context: Context) {
     companion object {
-        private val TAG = Utils.TAG(BluetoothGattCompat::class.java)
+        private val TAG = TAG(BluetoothGattCompat::class.java)
 
         private val iBluetoothManager: Any?
             @Throws(NoSuchMethodException::class, InvocationTargetException::class, IllegalAccessException::class)

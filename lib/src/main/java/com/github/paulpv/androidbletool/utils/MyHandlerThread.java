@@ -7,8 +7,7 @@ import android.util.Log;
  * Replacement for {@link HandlerThread} to fix start-up race conditions.
  */
 public class MyHandlerThread
-        extends HandlerThread
-{
+        extends HandlerThread {
     private static final String TAG = Utils.TAG(MyHandlerThread.class);
 
     /*
@@ -18,19 +17,16 @@ public class MyHandlerThread
     Looper mLooper;
     */
 
-    public MyHandlerThread(String threadName)
-    {
+    public MyHandlerThread(String threadName) {
         super(threadName);
     }
 
-    public MyHandlerThread(String threadName, int priority)
-    {
+    public MyHandlerThread(String threadName, int priority) {
         super(threadName, priority);
     }
 
     @Override
-    protected void onLooperPrepared()
-    {
+    protected void onLooperPrepared() {
         String threadName = getName();
         Log.v(TAG, threadName + " +onLooperPrepared()");
         super.onLooperPrepared();
@@ -38,8 +34,7 @@ public class MyHandlerThread
     }
 
     @Override
-    public void run()
-    {
+    public void run() {
         String threadName = getName();
         Log.v(TAG, threadName + " +run()");
 

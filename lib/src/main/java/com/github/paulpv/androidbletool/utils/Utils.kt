@@ -34,6 +34,7 @@ object Utils {
             return tag
         }
         var length = tag.length
+
         @Suppress("NAME_SHADOWING")
         val tag = tag.substring(tag.lastIndexOf("$") + 1, length)
         if (tag.length <= LOG_TAG_LENGTH_LIMIT) {

@@ -5,8 +5,8 @@ import android.content.Context;
 import androidx.annotation.NonNull;
 
 @SuppressWarnings({"WeakerAccess", "unused"})
-public class Runtime {
-    private Runtime() {
+public class RuntimeUtils {
+    private RuntimeUtils() {
     }
 
     @NonNull

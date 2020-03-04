@@ -1,15 +1,15 @@
 package com.github.paulpv.androidbletool
 
 import android.bluetooth.le.ScanResult
-import com.github.paulpv.androidbletool.math.LowPassFilter
 import com.github.paulpv.androidbletool.utils.ReflectionUtils
-import com.github.paulpv.androidbletool.utils.Utils
+import com.github.paulpv.androidbletool.utils.Utils.TAG
+import com.github.paulpv.androidbletool.math.LowPassFilter
 
 @Suppress("EqualsOrHashCode")
 class BleScanResult {
     companion object {
         @Suppress("unused")
-        private val TAG = Utils.TAG(BleScanResult::class.java)
+        private val TAG = TAG(BleScanResult::class.java)
     }
 
     constructor(bleScanResult: BleScanResult?, scanResult: ScanResult) :

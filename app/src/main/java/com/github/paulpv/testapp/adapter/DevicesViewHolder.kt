@@ -5,8 +5,8 @@ import android.content.Context
 import android.view.View.OnClickListener
 import android.view.ViewGroup
 import android.widget.TextView
-import com.github.paulpv.androidbletool.R
 import com.github.paulpv.androidbletool.utils.Utils
+import com.github.paulpv.androidbletool.R
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -14,7 +14,7 @@ class DevicesViewHolder(val context: Context, itemView: ViewGroup) :
     BindableViewHolder<DeviceInfo>(itemView) {
 
     //companion object {
-    //    private val TAG = Utils.TAG(DevicesViewHolder::class.java)
+    //    private val TAG = TAG(DevicesViewHolder::class.java)
     //}
 
     private val labelAddress: TextView = itemView.findViewById(R.id.labelAddress)

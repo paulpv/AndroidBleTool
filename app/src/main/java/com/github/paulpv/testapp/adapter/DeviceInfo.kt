@@ -4,7 +4,7 @@ import com.github.paulpv.androidbletool.BleScanResult
 import com.github.paulpv.androidbletool.BuildConfig
 import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
 import com.github.paulpv.androidbletool.utils.ReflectionUtils
-import com.github.paulpv.androidbletool.utils.Utils
+import com.github.paulpv.androidbletool.utils.Utils.TAG
 
 data class DeviceInfo(
     val macAddress: String,
@@ -16,7 +16,7 @@ data class DeviceInfo(
     val timeoutRemainingMillis: Long
 ) {
     companion object {
-        private val TAG = Utils.TAG(DeviceInfo::class.java)
+        private val TAG = TAG(DeviceInfo::class.java)
 
         //private val deviceInfoPool = ArrayQueue<DeviceInfo>("DeviceInfoPool")
 

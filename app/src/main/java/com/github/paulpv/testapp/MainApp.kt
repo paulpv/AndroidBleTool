@@ -5,6 +5,7 @@ import android.app.Application
 import android.bluetooth.le.ScanFilter
 import com.github.paulpv.androidbletool.BleTool
 import com.github.paulpv.androidbletool.BleTool.BleToolConfiguration
+import com.github.paulpv.androidbletool.R
 
 class MainApp : Application(), BleTool.BleToolApplication {
 
@@ -14,12 +15,30 @@ class MainApp : Application(), BleTool.BleToolApplication {
         get() = _bleTool
     private lateinit var _bleTool: BleTool
 
+    val scanningNotificationInfo = object : BleTool.BleToolScanningNotificationInfo {
+        override val activityClass: Class<out Activity>
+            get() = MainActivity::class.java
+        override val channelDescription: String
+            get() = getString(R.string.notification_scanning_channel_description)
+        override val contentTitle: String
+            get() = getString(R.string.app_name)
+
+        override fun getSmallIcon(isForegrounded: Boolean): Int {
+            return if (isForegrounded) R.drawable.ic_launcher_foreground else R.drawable.ic_launcher_background
+        }
+
+        override fun getText(isBluetoothEnabled: Boolean): String {
+            val resId = if (isBluetoothEnabled) R.string.scanning else R.string.waiting_for_bluetooth
+            return getString(resId)
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
 
         bleToolConfiguration = object : BleToolConfiguration {
-            override val scanningNotificationActivityClass: Class<out Activity>
-                get() = MainActivity::class.java
+            override val scanningNotificationInfo: BleTool.BleToolScanningNotificationInfo
+                get() = this@MainApp.scanningNotificationInfo
 
             override fun addScanFilters(scanFilters: MutableList<ScanFilter>) {
                 scanFilters.add(

@@ -1,0 +1,51 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.github.paulpv.androidbletool"
+    >
+
+    <!--
+    Per https://developer.android.com/guide/topics/connectivity/bluetooth#Permissions
+    -->
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <!--
+    Needed for scanning in the background
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!--
+    Needed to resume scanning after reboot
+    -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <application>
+
+        <service android:name=".BleTool$NotificationService" />
+
+        <receiver android:name=".BleTool$BleDeviceScanReceiver" />
+
+        <receiver android:name=".BleTool$BootCompletedReceiver">
+            <!--
+            android:permission="android.permission.RECEIVE_BOOT_COMPLETED"
+            -->
+            <intent-filter>
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <!-- Implicit Broadcast Exceptions
+                 https://developer.android.com/guide/components/broadcast-exceptions.html
+                 -->
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <!-- Implicit Broadcasts
+                https://developer.android.com/about/versions/oreo/background.html#broadcasts
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.ACTION_POWER_CONNECTED"/>
+                <action android:name="android.intent.action.ACTION_POWER_DISCONNECTED"/>
+                -->
+            </intent-filter>
+        </receiver>
+
+    </application>
+
+</manifest>
