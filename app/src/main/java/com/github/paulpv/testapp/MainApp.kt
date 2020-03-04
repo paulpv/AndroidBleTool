@@ -10,13 +10,7 @@ import com.github.paulpv.androidbletool.R
 
 class MainApp : Application(), BleTool.BleToolApplication {
 
-    private lateinit var bleToolConfiguration: BleToolConfiguration
-
-    override val bleTool: BleTool
-        get() = _bleTool
-    private lateinit var _bleTool: BleTool
-
-    val scanningNotificationInfo = object : BleTool.BleToolScanningNotificationInfo {
+    private val scanningNotificationInfo = object : BleTool.BleToolScanningNotificationInfo {
         override val activityClass: Class<out Activity>
             get() = MainActivity::class.java
         override val channelDescription: String
@@ -36,17 +30,22 @@ class MainApp : Application(), BleTool.BleToolApplication {
         }
     }
 
+    private val bleToolConfiguration = object : BleToolConfiguration {
+        override val scanningNotificationInfo: BleTool.BleToolScanningNotificationInfo
+            get() = this@MainApp.scanningNotificationInfo
+        override val SCAN_FILTERS: List<ScanFilter>
+            get() = BuildConfig.SCAN_FILTERS
+        override val DEBUG_DEVICE_ADDRESS_FILTER: Set<String>?
+            get() = BuildConfig.DEBUG_DEVICE_ADDRESS_FILTER
+    }
+
+    private lateinit var _bleTool: BleTool
+
+    override val bleTool: BleTool
+        get() = _bleTool
+
     override fun onCreate() {
         super.onCreate()
-
-        bleToolConfiguration = object : BleToolConfiguration {
-            override val scanningNotificationInfo: BleTool.BleToolScanningNotificationInfo
-                get() = this@MainApp.scanningNotificationInfo
-            override val SCAN_FILTERS: List<ScanFilter>
-                get() = BuildConfig.SCAN_FILTERS
-            override val DEBUG_DEVICE_ADDRESS_FILTER: Set<String>?
-                get() = BuildConfig.DEBUG_DEVICE_ADDRESS_FILTER
-        }
 
         _bleTool = BleTool(this, bleToolConfiguration)
     }
