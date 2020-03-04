@@ -67,21 +67,6 @@ class BleTool(
 
         @Suppress("PropertyName")
         val SCAN_FILTER_EMPTY: ScanFilter = ScanFilter.Builder().build()
-
-        private val DEBUG_DEVICE_ADDRESS_FILTER = BuildConfig.DEBUG_DEVICE_ADDRESS_FILTER
-
-        private fun debugDeviceAddressFilterPass(deviceMacAddress: String): Boolean {
-            if (DEBUG_DEVICE_ADDRESS_FILTER != null && DEBUG_DEVICE_ADDRESS_FILTER.size > 0) {
-                if (!DEBUG_DEVICE_ADDRESS_FILTER.contains(deviceMacAddress)) {
-                    return false
-                }
-            }
-            return true
-        }
-
-        private fun debugDeviceAddressFilterPass(device: BluetoothDevice): Boolean {
-            return debugDeviceAddressFilterPass(device.address)
-        }
     }
 
     interface BleToolApplication {
@@ -106,10 +91,33 @@ class BleTool(
     interface BleToolConfiguration {
         val scanningNotificationInfo: BleToolScanningNotificationInfo
 
-        fun addScanFilters(scanFilters: MutableList<ScanFilter>)
+        @Suppress("PropertyName")
+        val SCAN_FILTERS: List<ScanFilter>
+
+        @Suppress("PropertyName")
+        val DEBUG_DEVICE_ADDRESS_FILTER: Set<String>?
     }
 
-    //abstract class ItemWrapperBleScanResult : ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>
+    //
+    //region DEBUG_DEVICE_ADDRESS_FILTER
+    //
+    private val DEBUG_DEVICE_ADDRESS_FILTER = configuration.DEBUG_DEVICE_ADDRESS_FILTER
+
+    private fun debugDeviceAddressFilterPass(deviceMacAddress: String): Boolean {
+        if (DEBUG_DEVICE_ADDRESS_FILTER != null && DEBUG_DEVICE_ADDRESS_FILTER.isNotEmpty()) {
+            if (!DEBUG_DEVICE_ADDRESS_FILTER.contains(deviceMacAddress)) {
+                return false
+            }
+        }
+        return true
+    }
+
+    private fun debugDeviceAddressFilterPass(device: BluetoothDevice): Boolean {
+        return debugDeviceAddressFilterPass(device.address)
+    }
+    //
+    //endregion DEBUG_DEVICE_ADDRESS_FILTER
+    //
 
     interface DeviceScanObserver {
         fun onDeviceScanError(bleTool: BleTool, e: Throwable): Boolean
@@ -884,8 +892,8 @@ class BleTool(
 
     private fun newScanFilters(): List<ScanFilter> {
         val scanFilters = mutableListOf<ScanFilter>()
-        configuration.addScanFilters(scanFilters)
-        if (scanFilters.size == 0) {
+        scanFilters.addAll(configuration.SCAN_FILTERS)
+        if (scanFilters.isEmpty()) {
             scanFilters.add(SCAN_FILTER_EMPTY)
         }
         return scanFilters

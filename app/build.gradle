@@ -17,8 +17,15 @@ android {
     defaultConfig {
         applicationId "com.github.paulpv.androidbletool"
         minSdkVersion 21
+
+        //
+        // targetSdkVersion 29 changes Background Location Permissions
+        //  https://source.android.com/devices/tech/config/background-location-access
+        //  https://developer.android.com/preview/privacy/location
+        //
         //noinspection OldTargetApi
-        targetSdkVersion 28 // NOTE: >= Q (29) deprecates WiFi enable/disable, which we may need to use; Android may one day do same w/ Bluetooth
+        targetSdkVersion 28
+
         versionCode 1
         versionName "1.0"
 
@@ -28,6 +35,24 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            buildConfigField "java.util.List<android.bluetooth.le.ScanFilter>", "SCAN_FILTERS", "" +
+                    "new java.util.ArrayList(){{" +
+                    "add(new android.bluetooth.le.ScanFilter.Builder().setDeviceName(\"FNDR\").build());" +
+                    "}}"
+            buildConfigField "java.util.Set<String>", "DEBUG_DEVICE_ADDRESS_FILTER", "null"
+        }
+        debug {
+            buildConfigField "java.util.List<android.bluetooth.le.ScanFilter>", "SCAN_FILTERS", "" +
+                    "new java.util.ArrayList(){{" +
+                    "add(new android.bluetooth.le.ScanFilter.Builder().setDeviceName(\"FNDR\").build());" +
+                    "}}"
+            buildConfigField "java.util.Set<String>", "DEBUG_DEVICE_ADDRESS_FILTER", "new java.util.HashSet<String>(){{" +
+                    /*
+                    "add(\"0E:06:E5:75:F0:AE\");" + // Pv's Finder 2 (Black #1) 2019/09/03
+                    "add(\"0E:06:E5:E6:E7:AE\");" + // Pv's Finder 2 (Green) 2019/08/28
+                    "add(\"0E:06:E5:E2:73:AF\");" + // Pv's Finder 2 (Black #2)
+                    */
+                    "}}"
         }
     }
 }

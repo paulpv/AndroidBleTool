@@ -5,6 +5,7 @@ import android.app.Application
 import android.bluetooth.le.ScanFilter
 import com.github.paulpv.androidbletool.BleTool
 import com.github.paulpv.androidbletool.BleTool.BleToolConfiguration
+import com.github.paulpv.androidbletool.BuildConfig
 import com.github.paulpv.androidbletool.R
 
 class MainApp : Application(), BleTool.BleToolApplication {
@@ -39,31 +40,10 @@ class MainApp : Application(), BleTool.BleToolApplication {
         bleToolConfiguration = object : BleToolConfiguration {
             override val scanningNotificationInfo: BleTool.BleToolScanningNotificationInfo
                 get() = this@MainApp.scanningNotificationInfo
-
-            override fun addScanFilters(scanFilters: MutableList<ScanFilter>) {
-                scanFilters.add(
-                    ScanFilter.Builder()
-                        .setDeviceName("FNDR")
-                        //.setDeviceAddress("0E:06:E5:75:F0:AE")
-                        .build()
-                )
-                /*
-                scanFilters.add(
-                    ScanFilter.Builder()
-                        .setDeviceName("FNDR")
-                        .setDeviceAddress("0E:06:E5:E2:73:AF")
-                        .build()
-                )
-                */
-                /*
-                scanFilters.add(
-                  ScanFilter.Builder()
-                    .setDeviceName("FNDR")
-                    .setDeviceAddress("0E:06:E5:E6:E7:AE")
-                    .build()
-                )
-                */
-            }
+            override val SCAN_FILTERS: List<ScanFilter>
+                get() = BuildConfig.SCAN_FILTERS
+            override val DEBUG_DEVICE_ADDRESS_FILTER: Set<String>?
+                get() = BuildConfig.DEBUG_DEVICE_ADDRESS_FILTER
         }
 
         _bleTool = BleTool(this, bleToolConfiguration)
