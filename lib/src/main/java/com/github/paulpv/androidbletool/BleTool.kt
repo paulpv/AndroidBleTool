@@ -19,13 +19,13 @@ import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.github.paulpv.androidbletool.BluetoothUtils.callbackTypeToString
 import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
-import com.github.paulpv.androidbletool.exceptions.BleScanException
 import com.github.paulpv.androidbletool.gatt.GattManager
 import com.github.paulpv.androidbletool.utils.ReflectionUtils
 import com.github.paulpv.androidbletool.utils.Utils
 import com.github.paulpv.androidbletool.utils.Utils.TAG
 import com.livinglifetechway.quickpermissions_kotlin.runWithPermissions
 import com.livinglifetechway.quickpermissions_kotlin.util.PermissionsUtil
+import com.livinglifetechway.quickpermissions_kotlin.util.QuickPermissionsOptions
 import java.util.concurrent.TimeUnit
 import kotlin.math.ceil
 import kotlin.system.exitProcess
@@ -101,6 +101,8 @@ class BleTool(
     //
     //region DEBUG_DEVICE_ADDRESS_FILTER
     //
+
+    @Suppress("PrivatePropertyName")
     private val DEBUG_DEVICE_ADDRESS_FILTER = configuration.DEBUG_DEVICE_ADDRESS_FILTER
 
     private fun debugDeviceAddressFilterPass(deviceMacAddress: String): Boolean {
@@ -112,15 +114,21 @@ class BleTool(
         return true
     }
 
+    @Suppress("unused")
     private fun debugDeviceAddressFilterPass(device: BluetoothDevice): Boolean {
         return debugDeviceAddressFilterPass(device.address)
     }
+
     //
     //endregion DEBUG_DEVICE_ADDRESS_FILTER
     //
 
+    interface BleToolObserver {
+        fun onScanStarted(bleTool: BleTool)
+        fun onScanStopped(bleTool: BleTool, error: Throwable?)
+    }
+
     interface DeviceScanObserver {
-        fun onDeviceScanError(bleTool: BleTool, e: Throwable): Boolean
         fun onDeviceAdded(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>)
         fun onDeviceUpdated(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>)
         fun onDeviceRemoved(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>)
@@ -299,17 +307,17 @@ class BleTool(
 
     private val looper = looper ?: Looper.getMainLooper()
     private val scanningPendingIntent = BleDeviceScanReceiver.newPendingIntent(application, SCAN_RECEIVER_REQUEST_CODE)
-    private var scanningCallbacks = object : ScanCallback() {
+    private var scanningCallback = object : ScanCallback() {
         override fun onScanFailed(errorCode: Int) {
-            this@BleTool.onScanFailed("", errorCode)
+            this@BleTool.onScanFailed("scanningCallback", errorCode)
         }
 
         override fun onScanResult(callbackType: Int, scanResult: ScanResult?) {
-            this@BleTool.onScanResult("", callbackType, scanResult)
+            this@BleTool.onScanResult("scanningCallback", callbackType, scanResult)
         }
 
         override fun onBatchScanResults(scanResults: MutableList<ScanResult>?) {
-            this@BleTool.onBatchScanResults("", scanResults)
+            this@BleTool.onBatchScanResults("scanningCallback", scanResults)
         }
     }
 
@@ -377,7 +385,12 @@ class BleTool(
     @Suppress("PrivatePropertyName")
     private val PERSISTENT_SCANNING_STARTED_MILLIS_UNDEFINED = 0L
     private var persistentScanningStartedMillis: Long
-        get() = sharedPreferences!!.getLong(PREF_PERSISTENT_SCANNING_STARTED_MILLIS, PERSISTENT_SCANNING_STARTED_MILLIS_UNDEFINED)
+        get() {
+            @Suppress("UnnecessaryVariable")
+            val value = sharedPreferences!!.getLong(PREF_PERSISTENT_SCANNING_STARTED_MILLIS, PERSISTENT_SCANNING_STARTED_MILLIS_UNDEFINED)
+            //Log.e(TAG, "persistentScanningStartedMillis=$value")
+            return value
+        }
         private set(value) = sharedPreferences!!.edit(commit = true) { putLong(PREF_PERSISTENT_SCANNING_STARTED_MILLIS, value) }
 
     @Suppress("PrivatePropertyName")
@@ -536,7 +549,8 @@ class BleTool(
     //
     //
 
-    private fun getString(resId: Int, vararg formatArgs: Any): String {
+    @Suppress("unused")
+    fun getString(resId: Int, vararg formatArgs: Any): String {
         return application.getString(resId, formatArgs)
     }
 
@@ -700,6 +714,7 @@ class BleTool(
 
     private var currentActivity: Activity? = null
     private val deviceScanObservers: MutableSet<DeviceScanObserver> = mutableSetOf()
+    private val bleToolObservers: MutableSet<BleToolObserver> = mutableSetOf()
 
     private val isForegrounded: Boolean
         get() = currentActivity != null
@@ -740,15 +755,23 @@ class BleTool(
     }
 
     private fun activityAdd(activity: Activity) {
+        Log.e(TAG, "activityAdd(activity=$activity)")
         currentActivity = activity
         if (activity is DeviceScanObserver) {
+            attach(activity)
+        }
+        if (activity is BleToolObserver) {
             attach(activity)
         }
     }
 
     private fun activityRemove(activity: Activity) {
+        Log.e(TAG, "activityRemove(activity=$activity)")
         currentActivity = null
         if (activity is DeviceScanObserver) {
+            detach(activity)
+        }
+        if (activity is BleToolObserver) {
             detach(activity)
         }
     }
@@ -756,6 +779,7 @@ class BleTool(
     @Suppress("MemberVisibilityCanBePrivate")
     fun attach(observer: DeviceScanObserver) {
         Log.v(TAG, "attach(observer=$observer)")
+        @Suppress("ControlFlowWithEmptyBody")
         if (deviceScanObservers.add(observer)) {
             //...
         }
@@ -763,8 +787,27 @@ class BleTool(
 
     @Suppress("MemberVisibilityCanBePrivate")
     fun detach(observer: DeviceScanObserver) {
-        Log.v(TAG, "attach(observer=$observer)")
+        Log.v(TAG, "detach(observer=$observer)")
+        @Suppress("ControlFlowWithEmptyBody")
         if (deviceScanObservers.remove(observer)) {
+            //...
+        }
+    }
+
+    @Suppress("MemberVisibilityCanBePrivate")
+    fun attach(observer: BleToolObserver) {
+        Log.v(TAG, "attach(observer=$observer)")
+        @Suppress("ControlFlowWithEmptyBody")
+        if (bleToolObservers.add(observer)) {
+            //...
+        }
+    }
+
+    @Suppress("MemberVisibilityCanBePrivate")
+    fun detach(observer: BleToolObserver) {
+        Log.v(TAG, "detach(observer=$observer)")
+        @Suppress("ControlFlowWithEmptyBody")
+        if (bleToolObservers.remove(observer)) {
             //...
         }
     }
@@ -782,7 +825,7 @@ class BleTool(
         }
     }
 
-    private fun persistentScanningStartIfEnabled(caller: String) {
+    private fun persistentScanningStartIfEnabled(@Suppress("SameParameterValue") caller: String) {
         if (isPersistentScanningEnabled) {
             Log.i(TAG, "$caller->persistentScanningStartIfEnabled; isPersistentScanningEnabled == true; START")
             persistentScanningStart()
@@ -838,10 +881,14 @@ class BleTool(
         Log.i(TAG, "persistentScanningStart()")
 
         val runAfterPermissionsCheck = {
+            //
+            // NOTE:(pv) This usually fires **BEFORE** any attached activity resumes
+            //
             recentlyNearbyDevices.clear()
             if (persistentScanningResume("persistentScanningStart", false)) {
                 persistentScanningStartedMillis = SystemClock.uptimeMillis()
                 scanningNotificationUpdate()
+                bleToolObservers.forEach { it.onScanStarted(this) }
             }
         }
 
@@ -854,31 +901,34 @@ class BleTool(
 
         if (currentActivity != null) {
             currentActivity.runWithPermissions(
-                *PERMISSIONS
-                /*
-                , options = QuickPermissionsOptions(
-                    handleRationale = false,
-                    rationaleMessage = "Custom rational message",
-                    permanentlyDeniedMessage = "Custom permanently denied message",
-                    rationaleMethod = { req ->
-                        {
-                        }
+                *PERMISSIONS,
+                options = QuickPermissionsOptions(
+                    //handleRationale = false,
+                    //rationaleMessage = "Custom rational message",
+                    //permanentlyDeniedMessage = "Custom permanently denied message",
+                    rationaleMethod = {
+                        Log.e(TAG, "rationaleMethod")
                     },
-                    permanentDeniedMethod = { req ->
-                        {
-                        }
+                    permanentDeniedMethod = {
+                        Log.e(TAG, "permanentDeniedMethod")
+                    },
+                    permissionsDeniedMethod = {
+                        Log.e(TAG, "permissionsDeniedMethod")
                     }
-                )*/
+                )
             ) {
                 runAfterPermissionsCheck()
             }
-            return true
+            return false
         }
 
-        //  TODO:pv) No handlers: Show **persistent** notification [to keep app process alive] requesting permission(s)
+        //  TODO:pv) No handlers; must have been started in the background
+        //   Show **persistent** notification [to keep app process alive] requesting permission(s)
         //...
 
-        return true
+        //createNotification(...)
+
+        return false
     }
 
     private fun newScanSettings(): ScanSettings {
@@ -929,7 +979,7 @@ class BleTool(
                         persistentScanningBackgroundPid = MY_PID
                     } else {
                         Log.i(TAG, "persistentScanningResume: USE_API_VERSION < 26; Start non-background ScanCallback scan")
-                        bluetoothAdapter!!.bluetoothLeScanner.startScan(scanFilters, scanSettings, scanningCallbacks)
+                        bluetoothAdapter!!.bluetoothLeScanner.startScan(scanFilters, scanSettings, scanningCallback)
                     }
 
                     // TODO:(pv) Find a way to get auto-start after reboot to work without using NotificationService.
@@ -940,7 +990,7 @@ class BleTool(
                     success = true
 
                 } catch (scanException: Throwable) {
-                    Log.e(TAG, "persistentScanningResume: Failed to start scan", scanException)
+                    Log.e(TAG, "persistentScanningResume: startScan failed", scanException)
                     onScanFailed("persistentScanningResume", scanException)
                 }
             }
@@ -982,13 +1032,13 @@ class BleTool(
                 bluetoothAdapter!!.bluetoothLeScanner.stopScan(scanningPendingIntent)
             } else {
                 Log.i(TAG, "persistentScanningPause: USE_API_VERSION < 26; Stopping non-background ScanCallback scan")
-                bluetoothAdapter!!.bluetoothLeScanner.stopScan(scanningCallbacks)
+                bluetoothAdapter!!.bluetoothLeScanner.stopScan(scanningCallback)
             }
 
             success = true
 
-        } catch (scanException: BleScanException) {
-            Log.e(TAG, "persistentScanningPause: Failed to stop scan", scanException)
+        } catch (scanException: Throwable) {
+            Log.e(TAG, "persistentScanningPause: stopScan failed", scanException)
             onScanFailed("persistentScanningPause", scanException)
         }
 
@@ -1015,7 +1065,9 @@ class BleTool(
         Log.i(TAG, "persistentScanningStop()")
         if (!isPersistentScanningEnabled) return false
         persistentScanningReset()
-        return persistentScanningPause("persistentScanningStop", true)
+        val result = persistentScanningPause("persistentScanningStop", true)
+        bleToolObservers.forEach { it.onScanStopped(this, null) }
+        return result
     }
 
     //
@@ -1152,7 +1204,7 @@ class BleTool(
 
         //PbLog.e(TAG, "onScanReceived(context=" + context + ", intent=" + PbPlatformUtils.toString(intent) + ')');
 
-        val errorCode = intent.getIntExtra(BluetoothLeScanner.EXTRA_ERROR_CODE, -1)
+        val errorCode = intent.getIntExtra(BluetoothLeScanner.EXTRA_ERROR_CODE, BluetoothUtils.SCAN_CALLBACK_NO_ERROR)
         if (errorCode != -1) {
             onScanFailed("PendingIntent", errorCode)
             return
@@ -1191,7 +1243,7 @@ class BleTool(
 
     private fun onScanFailed(caller: String, throwable: Throwable) {
         Log.e(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} onScanFailed: $caller $throwable")
-        deviceScanObservers.forEach { it.onDeviceScanError(this, throwable) }
+        bleToolObservers.forEach { it.onScanStopped(this, throwable) }
     }
 
     private fun onBatchScanResults(caller: String, scanResults: MutableList<ScanResult>?) {
@@ -1274,9 +1326,7 @@ class BleTool(
         val it = recentlyNearbyDevicesUpdatedDebounce.iterator()
         while (it.hasNext()) {
             val item = it.next()
-            deviceScanObservers.forEach { observer ->
-                observer.onDeviceUpdated(this, item)
-            }
+            deviceScanObservers.forEach { it.onDeviceUpdated(this, item) }
             it.remove()
         }
     }

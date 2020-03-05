@@ -32,7 +32,6 @@ object BluetoothUtils {
     @Suppress("MemberVisibilityCanBePrivate")
     fun getBluetoothManager(context: Context): BluetoothManager? {
         return if (!isBluetoothSupported(context)) null else context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-
     }
 
     /**
@@ -249,6 +248,11 @@ object BluetoothUtils {
     //
 
     /**
+     * From hidden @see ScanCallback#NO_ERROR
+     */
+    const val SCAN_CALLBACK_NO_ERROR = 0
+
+    /**
      * From hidden @see ScanCallback#SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES
      */
     @Suppress("MemberVisibilityCanBePrivate")
@@ -262,6 +266,7 @@ object BluetoothUtils {
 
     fun scanErrorCodeToString(errorCode: Int): String {
         val message = when (errorCode) {
+            SCAN_CALLBACK_NO_ERROR -> "NO_ERROR"
             ScanCallback.SCAN_FAILED_ALREADY_STARTED -> "SCAN_FAILED_ALREADY_STARTED"
             ScanCallback.SCAN_FAILED_APPLICATION_REGISTRATION_FAILED -> "SCAN_FAILED_APPLICATION_REGISTRATION_FAILED"
             ScanCallback.SCAN_FAILED_INTERNAL_ERROR -> "SCAN_FAILED_INTERNAL_ERROR"

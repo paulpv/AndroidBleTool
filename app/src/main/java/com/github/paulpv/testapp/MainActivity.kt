@@ -15,6 +15,8 @@ import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.github.paulpv.androidbletool.BleScanResult
 import com.github.paulpv.androidbletool.BleTool
+import com.github.paulpv.androidbletool.BleTool.BleToolObserver
+import com.github.paulpv.androidbletool.BleTool.DeviceScanObserver
 import com.github.paulpv.androidbletool.R
 import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
 import com.github.paulpv.androidbletool.exceptions.BleScanException
@@ -27,7 +29,7 @@ import com.github.paulpv.testapp.adapter.DevicesAdapter
 import com.github.paulpv.testapp.adapter.SortBy
 import kotlinx.android.synthetic.main.activity_main.*
 
-class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
+class MainActivity : AppCompatActivity(), DeviceScanObserver, BleToolObserver {
     companion object {
         private val TAG = TAG(MainActivity::class.java)
 
@@ -130,6 +132,9 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
     override fun onResume() {
         super.onResume()
         devicesAdapter?.onResume(bleTool!!.recentlyNearbyDevicesIterator, isPersistentScanningEnabled)
+        if (switchScan != null) {
+            switchScan!!.isChecked = isPersistentScanningEnabled
+        }
     }
 
     override fun onPause() {
@@ -220,13 +225,24 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
     //endregion
     //
 
-    override fun onDeviceScanError(bleTool: BleTool, e: Throwable): Boolean {
-        Log.e(TAG, "onError: e=$e")
-        when (e) {
-            is BleScanException -> showError(e)
-            else -> showSnackbarShort(e.message ?: "null")
+    override fun onScanStarted(bleTool: BleTool) {
+        Log.e(TAG, "onDeviceScanStarted")
+        if (switchScan != null) {
+            switchScan!!.isChecked = true
         }
-        return false
+    }
+
+    override fun onScanStopped(bleTool: BleTool, error: Throwable?) {
+        Log.e(TAG, "onDeviceScanStopped")
+        if (switchScan != null) {
+            switchScan!!.isChecked = false
+        }
+        if (error != null) {
+            when (error) {
+                is BleScanException -> showError(error)
+                else -> showSnackbarShort(error.message ?: "null")
+            }
+        }
     }
 
     @SuppressLint("SetTextI18n")
@@ -236,18 +252,18 @@ class MainActivity : AppCompatActivity(), BleTool.DeviceScanObserver {
 
     override fun onDeviceAdded(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) {
         Log.w(TAG, "  onDeviceAdded: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} item=${item}")
-        devicesAdapter!!.add(item)//, notify = true)
+        devicesAdapter!!.add(item)
         updateScanCount()
     }
 
     override fun onDeviceUpdated(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) {
         Log.w(TAG, "onDeviceUpdated: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} item=${item}")
-        devicesAdapter!!.add(item)//, notify = true)
+        devicesAdapter!!.add(item)
     }
 
     override fun onDeviceRemoved(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) {
         Log.w(TAG, "onDeviceRemoved: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} item=${item}")
-        devicesAdapter!!.remove(item)//, notify = true, allowUndo = false)
+        devicesAdapter!!.remove(item)
         updateScanCount()
     }
 }
