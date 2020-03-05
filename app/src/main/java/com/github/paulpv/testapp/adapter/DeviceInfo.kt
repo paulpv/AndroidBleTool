@@ -1,5 +1,7 @@
 package com.github.paulpv.testapp.adapter
 
+import android.bluetooth.le.ScanResult
+import android.util.Log
 import com.github.paulpv.androidbletool.BleScanResult
 import com.github.paulpv.androidbletool.BuildConfig
 import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
@@ -19,6 +21,31 @@ data class DeviceInfo(
         private val TAG = TAG(DeviceInfo::class.java)
 
         //private val deviceInfoPool = ArrayQueue<DeviceInfo>("DeviceInfoPool")
+
+        /**
+         * NOTE:(pv) Is is possible for device.name to return null even though the scan says otherwise
+         * @return scanResult.device.name or scanResult.scanRecord.deviceName or device.address
+         */
+        fun getDeviceName(scanResult: ScanResult): String {
+            val device = scanResult.device
+            var deviceName: String? = device.name
+            if (deviceName != null) {
+                return deviceName
+            }
+            Log.w(TAG, "getDeviceName: UNEXPECTED scanResult.device.name == null")
+            val scanRecord = scanResult.scanRecord
+            if (scanRecord != null) {
+                deviceName = scanRecord.deviceName
+                if (deviceName != null) {
+                    return deviceName
+                }
+                Log.w(TAG, "getDeviceName: UNEXPECTED scanResult.scanRecord.deviceName == null")
+            } else {
+                Log.w(TAG, "getDeviceName: UNEXPECTED scanResult.scanRecord == null")
+            }
+            deviceName = "{${device.address}}"
+            return deviceName
+        }
 
         fun newInstance(item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>): DeviceInfo {
 
@@ -69,7 +96,7 @@ data class DeviceInfo(
                 }
             } else {
                 address = device.address
-                name = device.name
+                name = getDeviceName(scanResult)
                 rssi = bleScanResult.rssi
                 rssiSmoothed = bleScanResult.rssiSmoothed
             }
