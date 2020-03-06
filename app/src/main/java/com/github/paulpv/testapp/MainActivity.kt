@@ -17,11 +17,10 @@ import com.github.paulpv.androidbletool.BleScanResult
 import com.github.paulpv.androidbletool.BleTool
 import com.github.paulpv.androidbletool.BleTool.BleToolObserver
 import com.github.paulpv.androidbletool.BleTool.DeviceScanObserver
+import com.github.paulpv.androidbletool.PbBleDeviceFinder2
 import com.github.paulpv.androidbletool.R
 import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
 import com.github.paulpv.androidbletool.exceptions.BleScanException
-import com.github.paulpv.androidbletool.gatt.GattHandler
-import com.github.paulpv.androidbletool.gatt.GattUuids
 import com.github.paulpv.androidbletool.utils.Utils
 import com.github.paulpv.androidbletool.utils.Utils.TAG
 import com.github.paulpv.testapp.adapter.DeviceInfo
@@ -32,11 +31,6 @@ import kotlinx.android.synthetic.main.activity_main.*
 class MainActivity : AppCompatActivity(), DeviceScanObserver, BleToolObserver {
     companion object {
         private val TAG = TAG(MainActivity::class.java)
-
-        private val PLAY_JINGLE_COUNT_1 = byteArrayOf(0x01, 0x00)
-        private val PLAY_JINGLE_COUNT_2 = byteArrayOf(0x01, 0x00, 0x00)
-        private val PLAY_JINGLE_COUNT_3 = byteArrayOf(0x01, 0x00, 0x00, 0x00)
-        private val PLAY_JINGLE_COUNT_4 = byteArrayOf(0x80.toByte(), 0x01)
     }
 
     private var switchScan: SwitchCompat? = null
@@ -69,52 +63,7 @@ class MainActivity : AppCompatActivity(), DeviceScanObserver, BleToolObserver {
             override fun onItemSelected(item: DeviceInfo) {
                 Log.e(TAG, "onItemSelected: Make $item beep!!!")
                 val bleDevice = bleTool!!.getBleDevice(item.macAddress)
-                val gattHandler = bleDevice.gattHandler
-
-                val runDisconnect = Runnable {
-                    Log.e(TAG, "DISCONNECTING")
-                    gattHandler.disconnect(runAfterDisconnect = Runnable {
-                        Log.e(TAG, "DISCONNECTED!")
-                    })
-                }
-                val runBeep = Runnable {
-                    val service = GattUuids.PEBBLEBEE_FINDER_SERVICE.uuid
-                    val characteristic = GattUuids.PEBBLEBEE_FINDER_CHARACTERISTIC1.uuid
-                    val value = PLAY_JINGLE_COUNT_4
-                    Log.e(TAG, "WRITING")
-                    if (!gattHandler.characteristicWrite(
-                            serviceUuid = service,
-                            characteristicUuid = characteristic,
-                            value = value,
-                            characteristicWriteType = GattHandler.CharacteristicWriteType.DefaultWithResponse,
-                            runAfterSuccess = Runnable {
-                                Log.e(TAG, "WRITE SUCCESS!")
-                                runDisconnect.run()
-                            },
-                            runAfterFail = Runnable {
-                                Log.e(TAG, "WRITE FAIL!")
-                                runDisconnect.run()
-                            }
-                        )
-                    ) {
-                        runDisconnect.run()
-                    }
-                }
-
-                if (gattHandler.isConnectingOrConnectedAndNotDisconnecting) {
-                    runBeep.run()
-                } else {
-                    Log.e(TAG, "CONNECTING")
-                    if (!gattHandler.connect(runAfterConnect = Runnable {
-                            Log.e(TAG, "CONNECT SUCCESS!")
-                            runBeep.run()
-                        }, runAfterFail = Runnable {
-                            Log.e(TAG, "CONNECT FAIL!")
-                            runDisconnect.run()
-                        })) {
-                        runDisconnect.run()
-                    }
-                }
+                PbBleDeviceFinder2.requestBeep(bleDevice)
             }
         })
 
