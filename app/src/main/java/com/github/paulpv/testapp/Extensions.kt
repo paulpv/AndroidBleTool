@@ -22,17 +22,17 @@ internal fun Activity.showSnackbarShort(@StringRes text: Int) {
 //
 
 private val ERROR_MESSAGES = mapOf(
-    BleScanException.BLUETOOTH_NOT_AVAILABLE to R.string.error_bluetooth_not_available,
-    BleScanException.BLUETOOTH_DISABLED to R.string.error_bluetooth_disabled,
-    BleScanException.LOCATION_PERMISSION_MISSING to R.string.error_location_permission_missing,
-    BleScanException.LOCATION_SERVICES_DISABLED to R.string.error_location_services_disabled,
     BleScanException.SCAN_FAILED_ALREADY_STARTED to R.string.error_scan_failed_already_started,
     BleScanException.SCAN_FAILED_APPLICATION_REGISTRATION_FAILED to R.string.error_scan_failed_application_registration_failed,
-    BleScanException.SCAN_FAILED_FEATURE_UNSUPPORTED to R.string.error_scan_failed_feature_unsupported,
     BleScanException.SCAN_FAILED_INTERNAL_ERROR to R.string.error_scan_failed_internal_error,
+    BleScanException.SCAN_FAILED_FEATURE_UNSUPPORTED to R.string.error_scan_failed_feature_unsupported,
     BleScanException.SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES to R.string.error_scan_failed_out_of_hardware_resources,
+    BleScanException.SCAN_FAILED_SCANNING_TOO_FREQUENTLY to R.string.error_undocumented_scan_throttle,
     BleScanException.BLUETOOTH_CANNOT_START to R.string.error_bluetooth_cannot_start,
-    BleScanException.UNKNOWN_ERROR_CODE to R.string.error_unknown_error
+    BleScanException.BLUETOOTH_DISABLED to R.string.error_bluetooth_disabled,
+    BleScanException.BLUETOOTH_NOT_AVAILABLE to R.string.error_bluetooth_not_available,
+    BleScanException.LOCATION_PERMISSION_MISSING to R.string.error_location_permission_missing,
+    BleScanException.LOCATION_SERVICES_DISABLED to R.string.error_location_services_disabled
 )
 
 internal fun Activity.showError(exception: BleScanException) =
@@ -43,15 +43,15 @@ internal fun Activity.showError(exception: BleScanException) =
 
 private fun Activity.getErrorMessage(exception: BleScanException): String =
     // Special case, as there might or might not be a retry date suggestion
-    if (exception.reason == BleScanException.UNDOCUMENTED_SCAN_THROTTLE) {
+    if (exception.errorCode == BleScanException.SCAN_FAILED_SCANNING_TOO_FREQUENTLY) {
         getScanThrottleErrorMessage(exception.retryDateSuggestion)
     } else {
         // Handle all other possible errors
-        ERROR_MESSAGES[exception.reason]?.let { errorResId ->
+        ERROR_MESSAGES[exception.errorCode]?.let { errorResId ->
             getString(errorResId)
         } ?: run {
             // unknown error - return default message
-            Log.w("Scanning", String.format(getString(R.string.error_no_message), exception.reason))
+            Log.w("Scanning", String.format(getString(R.string.error_no_message), exception.errorCode))
             getString(R.string.error_unknown_error)
         }
     }

@@ -242,42 +242,4 @@ object BluetoothUtils {
         }
         return "$text($callbackType)"
     }
-
-    //
-    //
-    //
-
-    /**
-     * From hidden @see ScanCallback#NO_ERROR
-     */
-    const val SCAN_CALLBACK_NO_ERROR = 0
-
-    /**
-     * From hidden @see ScanCallback#SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES
-     */
-    @Suppress("MemberVisibilityCanBePrivate")
-    const val SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES = 5
-
-    /**
-     * From hidden @see ScanCallback#SCAN_FAILED_SCANNING_TOO_FREQUENTLY
-     */
-    @Suppress("MemberVisibilityCanBePrivate")
-    const val SCAN_FAILED_SCANNING_TOO_FREQUENTLY = 6
-
-    fun scanErrorCodeToString(errorCode: Int): String {
-        val message = when (errorCode) {
-            SCAN_CALLBACK_NO_ERROR -> "NO_ERROR"
-            ScanCallback.SCAN_FAILED_ALREADY_STARTED -> "SCAN_FAILED_ALREADY_STARTED"
-            ScanCallback.SCAN_FAILED_APPLICATION_REGISTRATION_FAILED -> "SCAN_FAILED_APPLICATION_REGISTRATION_FAILED"
-            ScanCallback.SCAN_FAILED_INTERNAL_ERROR -> "SCAN_FAILED_INTERNAL_ERROR"
-            ScanCallback.SCAN_FAILED_FEATURE_UNSUPPORTED -> "SCAN_FAILED_FEATURE_UNSUPPORTED"
-            SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES -> "SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES"
-            SCAN_FAILED_SCANNING_TOO_FREQUENTLY -> "SCAN_FAILED_SCANNING_TOO_FREQUENTLY"
-            else -> "SCAN_FAILED_UNKNOWN"
-        }
-        return "$message($errorCode)"
-    }
-
-    class BleScanThrowable(@Suppress("MemberVisibilityCanBePrivate", "CanBeParameter") val errorCode: Int) :
-        Throwable(scanErrorCodeToString(errorCode))
 }

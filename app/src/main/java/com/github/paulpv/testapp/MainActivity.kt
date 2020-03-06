@@ -226,14 +226,14 @@ class MainActivity : AppCompatActivity(), DeviceScanObserver, BleToolObserver {
     //
 
     override fun onScanStarted(bleTool: BleTool) {
-        Log.e(TAG, "onDeviceScanStarted")
+        Log.i(TAG, "onDeviceScanStarted")
         if (switchScan != null) {
             switchScan!!.isChecked = true
         }
     }
 
     override fun onScanStopped(bleTool: BleTool, error: Throwable?) {
-        Log.e(TAG, "onDeviceScanStopped")
+        Log.i(TAG, "onDeviceScanStopped")
         if (switchScan != null) {
             switchScan!!.isChecked = false
         }
