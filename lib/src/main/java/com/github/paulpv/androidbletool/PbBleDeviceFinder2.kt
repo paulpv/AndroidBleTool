@@ -13,6 +13,7 @@ object PbBleDeviceFinder2 {
     private val PLAY_JINGLE_COUNT_3 = byteArrayOf(0x01, 0x00, 0x00, 0x00)
     private val PLAY_JINGLE_COUNT_4 = byteArrayOf(0x80.toByte(), 0x01)
 
+    @JvmStatic
     fun requestBeep(bleDevice: BleDevice) {
         val gattHandler = bleDevice.gattHandler
 
