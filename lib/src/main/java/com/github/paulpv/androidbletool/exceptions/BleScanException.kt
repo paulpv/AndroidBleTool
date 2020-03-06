@@ -138,7 +138,7 @@ class BleScanException : BleException {
     val errorCode: Int
 
     /**
-     * Returns a [Date] suggestion when a particular [Reason] should no longer be valid
+     * Returns a [Date] suggestion when a particular [ErrorCode] should no longer be valid
      *
      * @return the date suggestion or null if no suggestion available
      */
