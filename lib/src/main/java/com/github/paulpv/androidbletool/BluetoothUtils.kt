@@ -3,12 +3,12 @@ package com.github.paulpv.androidbletool
 import android.annotation.SuppressLint
 import android.bluetooth.*
 import android.bluetooth.le.BluetoothLeAdvertiser
-import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
+import android.util.SparseArray
 import com.github.paulpv.androidbletool.utils.Utils
 import com.github.paulpv.androidbletool.utils.Utils.TAG
 import java.util.*

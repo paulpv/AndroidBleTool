@@ -2,6 +2,7 @@ package com.github.paulpv.androidbletool.utils
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.SparseArray
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -197,6 +198,69 @@ object Utils {
 
         return sb.toString()
     }
+
+    /**
+     * Returns a string composed from a [SparseArray].
+     */
+    fun toString(array: SparseArray<ByteArray>?): String? {
+        if (array == null) {
+            return "null"
+        }
+        val buffer = StringBuilder()
+        buffer.append('{')
+        for (i in 0 until array.size()) {
+            buffer.append(array.keyAt(i)).append("=").append(Arrays.toString(array.valueAt(i)))
+        }
+        buffer.append('}')
+        return buffer.toString()
+    }
+
+    //
+    //
+    //
+
+    fun toHexString(bytes: ByteArray?): String? {
+        return toHexString(bytes, true)
+    }
+
+    fun toHexString(bytes: ByteArray?, asByteArray: Boolean): String? {
+        return if (bytes == null) {
+            "null"
+        } else toHexString(bytes, 0, bytes.size, asByteArray)
+    }
+
+    fun toHexString(bytes: ByteArray?, offset: Int, count: Int): String? {
+        return toHexString(bytes, offset, count, true)
+    }
+
+    fun toHexString(bytes: ByteArray?, offset: Int, count: Int, asByteArray: Boolean): String? {
+        if (bytes == null) {
+            return "null"
+        }
+        val hexChars = charArrayOf(
+            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
+        )
+        val sb = java.lang.StringBuilder()
+        if (asByteArray) {
+            for (i in offset until count) {
+                if (i != offset) {
+                    sb.append('-')
+                }
+                sb.append(hexChars[(0x000000f0 and bytes[i].toInt()) shr 4])
+                sb.append(hexChars[(0x0000000f and bytes[i].toInt())])
+            }
+        } else {
+            for (i in count - 1 downTo 0) {
+                sb.append(hexChars[(0x000000f0 and bytes[i].toInt()) shr 4])
+                sb.append(hexChars[(0x0000000f and bytes[i].toInt())])
+            }
+        }
+        return sb.toString()
+    }
+
+    //
+    //
+    //
 
     @JvmStatic
     fun split(source: String, separator: String, limit: Int): Array<String> {
