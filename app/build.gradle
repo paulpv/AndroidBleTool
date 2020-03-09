@@ -35,9 +35,11 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            buildConfigField "java.util.List<android.bluetooth.le.ScanFilter>", "SCAN_FILTERS", "" +
-                    "new java.util.ArrayList(){{" +
+            buildConfigField "java.util.List<android.bluetooth.le.ScanFilter>", "SCAN_FILTERS", "new java.util.ArrayList(){{" +
                     "add(new android.bluetooth.le.ScanFilter.Builder().setDeviceName(\"FNDR\").build());" +
+                    "}}"
+            buildConfigField "java.util.List<com.github.paulpv.androidbletool.BleToolParser.AbstractParser>", "SCAN_PARSERS", "new java.util.ArrayList(){{" +
+                    "add(new com.github.paulpv.androidbletool.devices.PbBleDeviceFinder2.Parser());" +
                     "}}"
             buildConfigField "java.util.Set<String>", "DEBUG_DEVICE_ADDRESS_FILTER", "null"
         }
@@ -45,6 +47,9 @@ android {
             buildConfigField "java.util.List<android.bluetooth.le.ScanFilter>", "SCAN_FILTERS", "" +
                     "new java.util.ArrayList(){{" +
                     "add(new android.bluetooth.le.ScanFilter.Builder().setDeviceName(\"FNDR\").build());" +
+                    "}}"
+            buildConfigField "java.util.List<com.github.paulpv.androidbletool.BleToolParser.AbstractParser>", "SCAN_PARSERS", "new java.util.ArrayList(){{" +
+                    "add(new com.github.paulpv.androidbletool.devices.PbBleDeviceFinder2.Parser());" +
                     "}}"
             buildConfigField "java.util.Set<String>", "DEBUG_DEVICE_ADDRESS_FILTER", "new java.util.HashSet<String>(){{" +
                     "add(\"0E:06:E5:75:F0:AE\");" + // Pv's Finder 2 (Black #1)

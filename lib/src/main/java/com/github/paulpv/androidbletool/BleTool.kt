@@ -38,7 +38,6 @@ import kotlin.system.exitProcess
 class BleTool(
     private val application: Application,
     private val configuration: BleToolConfiguration,
-    private val deviceScanTimeoutMillis: Int = DEVICE_SCAN_TIMEOUT_MILLIS_DEFAULT,
     looper: Looper? = null
 ) {
     companion object {
@@ -89,14 +88,21 @@ class BleTool(
         fun getContentText(isBluetoothEnabled: Boolean): String
     }
 
-    interface BleToolConfiguration {
-        val scanningNotificationInfo: BleToolScanningNotificationInfo
+    abstract class BleToolConfiguration {
+        abstract val scanningNotificationInfo: BleToolScanningNotificationInfo
 
         @Suppress("PropertyName")
-        val SCAN_FILTERS: List<ScanFilter>
+        val DEVICE_SCAN_TIMEOUT_MILLIS: Int?
+            get() = DEVICE_SCAN_TIMEOUT_MILLIS_DEFAULT
 
         @Suppress("PropertyName")
-        val DEBUG_DEVICE_ADDRESS_FILTER: Set<String>?
+        abstract val SCAN_FILTERS: List<ScanFilter>
+
+        @Suppress("PropertyName")
+        abstract val SCAN_PARSERS: List<BleToolParser.AbstractParser>
+
+        @Suppress("PropertyName")
+        abstract val DEBUG_DEVICE_ADDRESS_FILTER: Set<String>?
     }
 
     //
@@ -367,8 +373,11 @@ class BleTool(
         AppProcessRunningStateChangeReceiver(application)
     )
 
+    @Suppress("PrivatePropertyName")
+    private val DEVICE_SCAN_TIMEOUT_MILLIS = configuration.DEVICE_SCAN_TIMEOUT_MILLIS ?: DEVICE_SCAN_TIMEOUT_MILLIS_DEFAULT
+
     private val recentlyNearbyDevices: ExpiringIterableLongSparseArray<BleScanResult> =
-        ExpiringIterableLongSparseArray("recentlyNearbyDevices", deviceScanTimeoutMillis, this.looper)
+        ExpiringIterableLongSparseArray("recentlyNearbyDevices", DEVICE_SCAN_TIMEOUT_MILLIS, this.looper)
 
     val recentlyNearbyDevicesIterator: Iterator<ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>>
         get() = recentlyNearbyDevices.iterateValues()
@@ -1319,6 +1328,7 @@ class BleTool(
         // @formatter:off
         Log.i(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceAdded: ADDED! bleScanResult=$bleScanResult")
         // @formatter:on
+        parseScan(item)
         deviceScanObservers.forEach { it.onDeviceAdded(this, item) }
     }
 
@@ -1335,7 +1345,15 @@ class BleTool(
             Log.v(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceUpdated: UPDATED! ageMillis=${Utils.getTimeDurationFormattedString(ageMillis)}, bleScanResult=$bleScanResult")
             // @formatter:on
         }
+        parseScan(item)
         recentlyNearbyDevicesUpdatedDebounce.add(item)
+    }
+
+    private val parser = BleToolParser(configuration.SCAN_PARSERS)
+
+    private fun parseScan(item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) {
+        val triggers = parser.parseScan(item)
+        Log.e(TAG, "parseScan: triggers=$triggers")
     }
 
     private val recentlyNearbyDevicesUpdatedDebounce: MutableSet<ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>> = mutableSetOf()
@@ -1363,7 +1381,7 @@ class BleTool(
         Log.w(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceExpiring: persistentScanningElapsedMillis=$persistentScanningElapsedMillis")
         Log.w(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceExpiring: isBluetoothEnabled=$isBluetoothEnabled")
         @Suppress("UnnecessaryVariable")
-        val keep = !isPersistentScanningEnabled || persistentScanningElapsedMillis < deviceScanTimeoutMillis || !isBluetoothEnabled
+        val keep = !isPersistentScanningEnabled || persistentScanningElapsedMillis < DEVICE_SCAN_TIMEOUT_MILLIS || !isBluetoothEnabled
         Log.w(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceExpiring: keep=$keep")
         // @formatter:on
         return keep

@@ -3,6 +3,7 @@ package com.github.paulpv.androidbletool.utils
 import android.content.Intent
 import android.os.Bundle
 import android.util.SparseArray
+import java.io.UnsupportedEncodingException
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -44,6 +45,33 @@ object Utils {
         length = tag.length
         val half = LOG_TAG_LENGTH_LIMIT / 2
         return tag.substring(0, half) + '…' + tag.substring(length - half)
+    }
+
+    //
+    //
+    //
+
+    @JvmStatic
+    val EMPTY = byteArrayOf(0)
+
+    @JvmStatic
+    fun getBytes(value: String): ByteArray {
+        return try {
+            value.toByteArray(Charsets.UTF_8)
+        } catch (e: UnsupportedEncodingException) {
+            throw IllegalStateException("UnsupportedEncodingException: Should never happen as long as Utf8Encoding is valid", e)
+        }
+    }
+
+    @JvmStatic
+    fun getString(bytes: ByteArray?, offset: Int, length: Int): String? {
+        return try {
+            // TODO:(pv) Does this work for *all* UTF8 strings?
+            String(bytes!!, offset, length, Charsets.UTF_8)
+        } catch (e: UnsupportedEncodingException) {
+            // Should *NEVER* happen since this method always uses a supported encoding
+            null
+        }
     }
 
     @JvmStatic
@@ -202,6 +230,7 @@ object Utils {
     /**
      * Returns a string composed from a [SparseArray].
      */
+    @JvmStatic
     fun toString(array: SparseArray<ByteArray>?): String? {
         if (array == null) {
             return "null"
@@ -219,21 +248,50 @@ object Utils {
     //
     //
 
-    fun toHexString(bytes: ByteArray?): String? {
+    @JvmStatic
+    fun toHexString(value: Byte, maxBytes: Int): String {
+        return toHexString(MyMemoryStream.getBytes(value), 0, maxBytes, false)
+    }
+
+    @JvmStatic
+    fun toHexString(value: Short, maxBytes: Int): String {
+        return toHexString(MyMemoryStream.getBytes(value), 0, maxBytes, false)
+    }
+
+    @JvmStatic
+    fun toHexString(value: Int, maxBytes: Int): String {
+        return toHexString(MyMemoryStream.getBytes(value), 0, maxBytes, false)
+    }
+
+    @JvmStatic
+    fun toHexString(value: Long, maxBytes: Int): String {
+        return toHexString(MyMemoryStream.getBytes(value), 0, maxBytes, false)
+    }
+
+    @JvmStatic
+    fun toHexString(value: String): String {
+        return toHexString(value.toByteArray())
+    }
+
+    @JvmStatic
+    fun toHexString(bytes: ByteArray?): String {
         return toHexString(bytes, true)
     }
 
-    fun toHexString(bytes: ByteArray?, asByteArray: Boolean): String? {
+    @JvmStatic
+    fun toHexString(bytes: ByteArray?, asByteArray: Boolean): String {
         return if (bytes == null) {
             "null"
         } else toHexString(bytes, 0, bytes.size, asByteArray)
     }
 
-    fun toHexString(bytes: ByteArray?, offset: Int, count: Int): String? {
+    @JvmStatic
+    fun toHexString(bytes: ByteArray?, offset: Int, count: Int): String {
         return toHexString(bytes, offset, count, true)
     }
 
-    fun toHexString(bytes: ByteArray?, offset: Int, count: Int, asByteArray: Boolean): String? {
+    @JvmStatic
+    fun toHexString(bytes: ByteArray?, offset: Int, count: Int, asByteArray: Boolean): String {
         if (bytes == null) {
             return "null"
         }
@@ -257,6 +315,97 @@ object Utils {
         }
         return sb.toString()
     }
+
+    @JvmStatic
+    fun bytesToHexString(value: Short, maxBytes: Int, lowerCase: Boolean): String {
+        return bytesToHexString(value, false, maxBytes, lowerCase)
+    }
+
+    @JvmStatic
+    fun bytesToHexString(value: Short, reverse: Boolean, maxBytes: Int, lowerCase: Boolean): String {
+        @Suppress("NAME_SHADOWING") var value = value
+        if (reverse) {
+            value = java.lang.Short.reverseBytes(value)
+        }
+        var s: String = toHexString(value, maxBytes)
+        if (lowerCase) {
+            s = s.toLowerCase(Locale.ROOT)
+        }
+        return s
+    }
+
+    @JvmStatic
+    fun bytesToHexString(value: Int, maxBytes: Int, lowerCase: Boolean): String {
+        return bytesToHexString(value, false, maxBytes, lowerCase)
+    }
+
+    @JvmStatic
+    fun bytesToHexString(value: Int, reverse: Boolean, maxBytes: Int, lowerCase: Boolean): String {
+        @Suppress("NAME_SHADOWING") var value = value
+        if (reverse) {
+            value = java.lang.Integer.reverseBytes(value)
+        }
+        var s: String = toHexString(value, maxBytes)
+        if (lowerCase) {
+            s = s.toLowerCase(Locale.ROOT)
+        }
+        return s
+    }
+
+    @JvmStatic
+    fun toBitString(value: Byte, maxBits: Int): String? {
+        return toBitString(value, maxBits, 8)
+    }
+
+    @JvmStatic
+    fun toBitString(value: Byte, maxBits: Int, spaceEvery: Int): String? {
+        return toBitString(MyMemoryStream.getBytes(value), maxBits, spaceEvery)
+    }
+
+    @JvmStatic
+    fun toBitString(value: Short, maxBits: Int): String? {
+        return toBitString(value, maxBits, 8)
+    }
+
+    @JvmStatic
+    fun toBitString(value: Short, maxBits: Int, spaceEvery: Int): String? {
+        return toBitString(MyMemoryStream.getBytes(value), maxBits, spaceEvery)
+    }
+
+    @JvmStatic
+    fun toBitString(value: Int, maxBits: Int): String? {
+        return toBitString(value, maxBits, 8)
+    }
+
+    @JvmStatic
+    fun toBitString(value: Int, maxBits: Int, spaceEvery: Int): String? {
+        return toBitString(MyMemoryStream.getBytes(value), maxBits, spaceEvery)
+    }
+
+    @JvmStatic
+    fun toBitString(value: Long, maxBits: Int): String? {
+        return toBitString(value, maxBits, 8)
+    }
+
+    @JvmStatic
+    fun toBitString(value: Long, maxBits: Int, spaceEvery: Int): String? {
+        return toBitString(MyMemoryStream.getBytes(value), maxBits, spaceEvery)
+    }
+
+    @JvmStatic
+    fun toBitString(bytes: ByteArray?, maxBits: Int, spaceEvery: Int): String? {
+        val bits = BitSetPlatform(bytes)
+        @Suppress("NAME_SHADOWING") val maxBits = 0.coerceAtLeast(maxBits.coerceAtMost(bits.length))
+        val sb = java.lang.StringBuilder()
+        for (i in maxBits - 1 downTo 0) {
+            sb.append(if (bits.get(i)) '1' else '0')
+            if (spaceEvery != 0 && i > 0 && i % spaceEvery == 0) {
+                sb.append(' ')
+            }
+        }
+        return sb.toString()
+    }
+
 
     //
     //

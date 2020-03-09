@@ -5,6 +5,7 @@ import android.app.Application
 import android.bluetooth.le.ScanFilter
 import com.github.paulpv.androidbletool.BleTool
 import com.github.paulpv.androidbletool.BleTool.BleToolConfiguration
+import com.github.paulpv.androidbletool.BleToolParser
 import com.github.paulpv.androidbletool.BuildConfig
 import com.github.paulpv.androidbletool.R
 
@@ -30,11 +31,13 @@ class MainApp : Application(), BleTool.BleToolApplication {
         }
     }
 
-    private val bleToolConfiguration = object : BleToolConfiguration {
+    private val bleToolConfiguration = object : BleToolConfiguration() {
         override val scanningNotificationInfo: BleTool.BleToolScanningNotificationInfo
             get() = this@MainApp.scanningNotificationInfo
         override val SCAN_FILTERS: List<ScanFilter>
             get() = BuildConfig.SCAN_FILTERS
+        override val SCAN_PARSERS: List<BleToolParser.AbstractParser>
+            get() = BuildConfig.SCAN_PARSERS
         override val DEBUG_DEVICE_ADDRESS_FILTER: Set<String>?
             get() = BuildConfig.DEBUG_DEVICE_ADDRESS_FILTER
     }
@@ -46,7 +49,6 @@ class MainApp : Application(), BleTool.BleToolApplication {
 
     override fun onCreate() {
         super.onCreate()
-
         _bleTool = BleTool(this, bleToolConfiguration)
     }
 }

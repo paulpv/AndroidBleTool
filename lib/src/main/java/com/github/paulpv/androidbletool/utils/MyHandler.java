@@ -5,12 +5,10 @@ import android.os.Looper;
 import android.os.Message;
 
 public class MyHandler
-        extends Handler
-{
+        extends Handler {
     private final IncrementingIntegerValue mMessageCodes;
 
-    public int getNextMessageCode()
-    {
+    public int getNextMessageCode() {
         return mMessageCodes.getNextMessageCode();
     }
 
@@ -18,8 +16,7 @@ public class MyHandler
      * Default constructor associates this handler with the {@link Looper} for the
      * main thread.
      */
-    public MyHandler()
-    {
+    public MyHandler() {
         this((Callback) null);
     }
 
@@ -30,8 +27,7 @@ public class MyHandler
      *
      * @param callback The callback interface in which to handle messages, or null.
      */
-    public MyHandler(Callback callback)
-    {
+    public MyHandler(Callback callback) {
         this(null, Looper.getMainLooper(), callback);
     }
 
@@ -40,8 +36,7 @@ public class MyHandler
      *
      * @param looper The looper, must not be null.
      */
-    public MyHandler(Looper looper)
-    {
+    public MyHandler(Looper looper) {
         this(null, looper, null);
     }
 
@@ -52,88 +47,73 @@ public class MyHandler
      * @param looper   The looper, must not be null.
      * @param callback The callback interface in which to handle messages, or null.
      */
-    public MyHandler(Looper looper, Callback callback)
-    {
+    public MyHandler(Looper looper, Callback callback) {
         this(null, looper, callback);
     }
 
-    public MyHandler(IncrementingIntegerValue messageCodes, Callback callback)
-    {
+    public MyHandler(IncrementingIntegerValue messageCodes, Callback callback) {
         this(messageCodes, Looper.getMainLooper(), callback);
     }
 
-    public MyHandler(IncrementingIntegerValue messageCodes, Looper looper, Callback callback)
-    {
+    public MyHandler(IncrementingIntegerValue messageCodes, Looper looper, Callback callback) {
         super(looper, callback);
-        if (messageCodes == null)
-        {
+        if (messageCodes == null) {
             messageCodes = new IncrementingIntegerValue();
         }
         mMessageCodes = messageCodes;
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         String infoKey = "getLooper()";
         String infoValue = null;
 
         Looper looper = getLooper();
-        if (looper != null)
-        {
+        if (looper != null) {
             infoKey += ".getThread().getName()";
             infoValue = looper.getThread().getName();
         }
         return getClass().getSimpleName() + '@' + Integer.toHexString(hashCode()) +
-               " { " +
-               infoKey + '=' + Utils.quote(infoValue) +
-               " }";
+                " { " +
+                infoKey + '=' + Utils.quote(infoValue) +
+                " }";
     }
 
-    public Message obtainAndSendMessage(int what, Object obj)
-    {
+    public Message obtainAndSendMessage(int what, Object obj) {
         return obtainAndSendMessage(what, 0, 0, obj);
     }
 
-    public Message obtainAndSendMessage(int what, int arg1, Object obj)
-    {
+    public Message obtainAndSendMessage(int what, int arg1, Object obj) {
         return obtainAndSendMessage(what, arg1, 0, obj);
     }
 
-    public Message obtainAndSendMessage(int what, int arg1, int arg2)
-    {
+    public Message obtainAndSendMessage(int what, int arg1, int arg2) {
         return obtainAndSendMessage(what, arg1, arg2, null);
     }
 
-    public Message obtainAndSendMessage(int what, int arg1, int arg2, Object obj)
-    {
+    public Message obtainAndSendMessage(int what, int arg1, int arg2, Object obj) {
         return obtainAndSendMessageDelayed(what, arg1, arg2, obj, 0);
     }
 
-    public Message obtainAndSendMessageDelayed(int what, Object obj, long delayMillis)
-    {
+    public Message obtainAndSendMessageDelayed(int what, Object obj, long delayMillis) {
         return obtainAndSendMessageDelayed(what, 0, 0, obj, delayMillis);
     }
 
-    public Message obtainAndSendMessageDelayed(int what, int arg1, Object obj, long delayMillis)
-    {
+    public Message obtainAndSendMessageDelayed(int what, int arg1, Object obj, long delayMillis) {
         return obtainAndSendMessageDelayed(what, arg1, 0, obj, delayMillis);
     }
 
-    public Message obtainAndSendMessageDelayed(int what, int arg1, int arg2, long delayMillis)
-    {
+    public Message obtainAndSendMessageDelayed(int what, int arg1, int arg2, long delayMillis) {
         return obtainAndSendMessageDelayed(what, arg1, arg2, null, delayMillis);
     }
 
-    public Message obtainAndSendMessageDelayed(int what, int arg1, int arg2, Object obj, long delayMillis)
-    {
+    public Message obtainAndSendMessageDelayed(int what, int arg1, int arg2, Object obj, long delayMillis) {
         Message message = obtainMessage(what, arg1, arg2, obj);
         sendMessageDelayed(message, delayMillis);
         return message;
     }
 
-    public boolean post(Runnable r, Object token)
-    {
+    public boolean post(Runnable r, Object token) {
         /*
         if (VERSION.SDK_INT >= 28)
         {
@@ -150,18 +130,17 @@ public class MyHandler
 
     /**
      * Avoid "Fatal Exception: java.lang.LinkageError Method boolean com.pebblebee.common.os.PbHandler.postDelayed(java.lang.Runnable, java.lang.Object, long) overrides final method in class Landroid/os/Handler; (declaration of 'com.pebblebee.common.os.PbHandler' appears in base.apk)"
+     *
      * @param r
      * @param token
      * @param delayMillis
      * @return
      */
-    public boolean supportPostDelayed(Runnable r, Object token, long delayMillis)
-    {
+    public boolean supportPostDelayed(Runnable r, Object token, long delayMillis) {
         return sendMessageDelayed(getPostMessage(r, token), delayMillis);
     }
 
-    private Message getPostMessage(Runnable r, Object token)
-    {
+    private Message getPostMessage(Runnable r, Object token) {
         Message m = Message.obtain(this, r);
         m.obj = token;
         return m;

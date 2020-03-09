@@ -17,7 +17,7 @@ import com.github.paulpv.androidbletool.BleScanResult
 import com.github.paulpv.androidbletool.BleTool
 import com.github.paulpv.androidbletool.BleTool.BleToolObserver
 import com.github.paulpv.androidbletool.BleTool.DeviceScanObserver
-import com.github.paulpv.androidbletool.PbBleDeviceFinder2
+import com.github.paulpv.androidbletool.devices.PbBleDeviceFinder2
 import com.github.paulpv.androidbletool.R
 import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
 import com.github.paulpv.androidbletool.exceptions.BleScanException
