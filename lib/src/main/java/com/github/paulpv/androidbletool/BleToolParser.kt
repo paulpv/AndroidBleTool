@@ -7,6 +7,7 @@ import android.util.Log
 import android.util.SparseArray
 import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
 import com.github.paulpv.androidbletool.devices.PbBleDeviceFinder2
+import com.github.paulpv.androidbletool.devices.Trigger
 import com.github.paulpv.androidbletool.gatt.GattUuid
 import com.github.paulpv.androidbletool.logging.MyLog
 import com.github.paulpv.androidbletool.utils.RuntimeUtils
@@ -299,12 +300,6 @@ class BleToolParser(private val parsers: List<AbstractParser>) {
             manufacturerId: Int,
             manufacturerSpecificDataByteBuffer: ByteBuffer
         ): Set<Trigger<*>>?
-    }
-
-    interface Trigger<T> {
-        val value: T
-        val isImmediate: Boolean
-        val isChanged: Boolean
     }
 
     private fun logManufacturerSpecificData(logLevel: Int, tag: String, debugInfo: String, manufacturerSpecificData: SparseArray<ByteArray>?) {

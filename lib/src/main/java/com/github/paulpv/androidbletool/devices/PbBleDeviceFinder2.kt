@@ -6,6 +6,7 @@ import android.os.ParcelUuid
 import android.util.Log
 import com.github.paulpv.androidbletool.BleDevice
 import com.github.paulpv.androidbletool.BleToolParser
+import com.github.paulpv.androidbletool.BleToolParser.*
 import com.github.paulpv.androidbletool.BluetoothUtils
 import com.github.paulpv.androidbletool.BuildConfig
 import com.github.paulpv.androidbletool.gatt.GattHandler
@@ -19,9 +20,16 @@ import java.util.*
 object PbBleDeviceFinder2 {
     private val TAG = TAG(PbBleDeviceFinder2::class.java)
 
+    @Suppress("unused")
     private val PLAY_JINGLE_COUNT_1 = byteArrayOf(0x01, 0x00)
+
+    @Suppress("unused")
     private val PLAY_JINGLE_COUNT_2 = byteArrayOf(0x01, 0x00, 0x00)
+
+    @Suppress("unused")
     private val PLAY_JINGLE_COUNT_3 = byteArrayOf(0x01, 0x00, 0x00, 0x00)
+
+    @Suppress("unused")
     private val PLAY_JINGLE_COUNT_4 = byteArrayOf(0x80.toByte(), 0x01)
 
     @JvmStatic
@@ -75,16 +83,25 @@ object PbBleDeviceFinder2 {
     }
 
     class Parser : BleToolParser.AbstractParser(
-        TAG, "Finder2", BleToolParser.Configuration()
-            .addDeviceAddressPrefixFilter(BleToolParser.PebblebeeMacAddressPrefix.PEBBLEBEE_FINDER2)
-            .addDeviceName(BleToolParser.PebblebeeDeviceCaseSensitiveName.FINDER)
+        TAG, "Finder2", Configuration()
+            .addDeviceAddressPrefixFilter(PebblebeeMacAddressPrefix.PEBBLEBEE_FINDER2)
+            .addDeviceName(PebblebeeDeviceCaseSensitiveName.FINDER)
             .addServiceUuid(GattUuids.PEBBLEBEE_FINDER_SERVICE)
     ) {
 
+        @Suppress("SimplifyBooleanWithConstants", "PrivatePropertyName")
         private val LOG_IGNORED_MAC_ADDRESS = false && BuildConfig.DEBUG
+
+        @Suppress("SimplifyBooleanWithConstants", "PrivatePropertyName")
         private val LOG_IBEACON_VERBOSE = false && BuildConfig.DEBUG
+
+        @Suppress("SimplifyBooleanWithConstants", "PrivatePropertyName")
         private val LOG_REGION = false && BuildConfig.DEBUG
+
+        @Suppress("SimplifyBooleanWithConstants", "PrivatePropertyName")
         private val LOG_DATA = false && BuildConfig.DEBUG
+
+        @Suppress("SimplifyBooleanWithConstants", "PrivatePropertyName")
         private val LOG_DATA_VERBOSE = false && BuildConfig.DEBUG
 
         override fun parseScan(
@@ -93,7 +110,7 @@ object PbBleDeviceFinder2 {
             serviceUuids: MutableList<ParcelUuid>,
             manufacturerId: Int,
             manufacturerSpecificDataByteBuffer: ByteBuffer
-        ): Set<BleToolParser.Trigger<*>>? {
+        ): Set<Trigger<*>>? {
 
             val bluetoothDeviceAddress = bluetoothDevice.address
 
@@ -108,7 +125,7 @@ object PbBleDeviceFinder2 {
             }
 
             when (manufacturerId) {
-                BleToolParser.PebblebeeManufacturerIds.PEBBLEBEE_FINDER2 -> {
+                PebblebeeManufacturerIds.PEBBLEBEE_FINDER2 -> {
                     val bluetoothDeviceName = getDeviceNameOrScanRecordName(bluetoothDevice, scanRecord)
                     if (LOG_DATA_VERBOSE) {
                         log(Log.INFO, bluetoothDeviceAddress, "parse", "bluetoothDeviceName=${Utils.quote(bluetoothDeviceName)}")
@@ -178,12 +195,14 @@ object PbBleDeviceFinder2 {
                             log(Log.INFO, bluetoothDeviceAddress, "parse", "DATA macAddressExtraByte=$macAddressExtraByte (0x${Utils.toHexString(macAddressExtraByte, 1)})")
                             //@formatter:on
                         }
-                        val triggers: MutableSet<BleToolParser.Trigger<*>> = LinkedHashSet<BleToolParser.Trigger<*>>()
+                        val triggers: MutableSet<Trigger<*>> = LinkedHashSet<Trigger<*>>()
                         val bytesRemaining = manufacturerSpecificDataByteBuffer.remaining()
+                        @Suppress("SimplifyBooleanWithConstants")
                         if (false && LOG_DATA_VERBOSE) {
                             log(Log.ERROR, bluetoothDeviceAddress, "parse", "DATA bytesRemaining=$bytesRemaining")
                         }
                         if (bytesRemaining == 0) {
+                            triggers.add(Trigger.TriggerAdvertisementSpeed(AdvertisementSpeed.SLOW))
                             return triggers
                         }
                         val actionSequenceAndData = manufacturerSpecificDataByteBuffer.get()
@@ -199,7 +218,7 @@ object PbBleDeviceFinder2 {
                         val actionDataButton = (actionData.toInt() and 3).toByte()
                         if (LOG_DATA_VERBOSE) {
                             //@formatter:off
-                            log(Log.ERROR, bluetoothDeviceAddress, "parse", "DATA actionSequence=${BleToolParser.ActionSequence.toString(actionSequence)} (0x${Utils.toHexString(actionSequence, 1)}) (0b${Utils.toBitString(actionSequence, 4)})")
+                            log(Log.ERROR, bluetoothDeviceAddress, "parse", "DATA actionSequence=${ActionSequence.toString(actionSequence)} (0x${Utils.toHexString(actionSequence, 1)}) (0b${Utils.toBitString(actionSequence, 4)})")
                             log(Log.ERROR, bluetoothDeviceAddress, "parse", "DATA actionData=$actionData (0x${Utils.toHexString(actionData, 1)}) (0b${Utils.toBitString(actionData, 4)})")
                             log(Log.ERROR, bluetoothDeviceAddress, "parse", "DATA actionDataBeepingAndFlashing=$actionDataBeepingAndFlashing (0x${Utils.toHexString(actionDataBeepingAndFlashing, 1)})")
                             //@formatter:on
@@ -213,8 +232,8 @@ object PbBleDeviceFinder2 {
                             //@formatter:on
                             when (actionDataAdvertisementSpeed) {
                                 //@formatter:off
-                                BleToolParser.AdvertisementSpeed.FAST -> log(Log.ERROR, bluetoothDeviceAddress, "parse", "DATA actionDataAdvertisementSpeed: FAST")
-                                BleToolParser.AdvertisementSpeed.SLOW -> log(Log.ERROR, bluetoothDeviceAddress, "parse", "DATA actionDataAdvertisementSpeed: SLOW")
+                                AdvertisementSpeed.FAST -> log(Log.ERROR, bluetoothDeviceAddress, "parse", "DATA actionDataAdvertisementSpeed: FAST")
+                                AdvertisementSpeed.SLOW -> log(Log.ERROR, bluetoothDeviceAddress, "parse", "DATA actionDataAdvertisementSpeed: SLOW")
                                 else -> log(Log.ERROR, bluetoothDeviceAddress, "parse", "DATA actionDataAdvertisementSpeed: Unknown")
                                 //@formatter:on
                             }
@@ -223,10 +242,10 @@ object PbBleDeviceFinder2 {
                             //@formatter:on
                             when (actionDataButton) {
                                 //@formatter:off
-                                BleToolParser.Actions.NONE -> log(Log.ERROR, bluetoothDeviceAddress, "parse", "DATA actionDataButton: NONE")
-                                BleToolParser.Actions.CLICK_SHORT -> log(Log.ERROR, bluetoothDeviceAddress, "parse", "DATA actionDataButton: CLICK_SHORT")
-                                BleToolParser.Actions.CLICK_LONG -> log(Log.ERROR, bluetoothDeviceAddress, "parse", "DATA actionDataButton: CLICK_LONG")
-                                BleToolParser.Actions.CLICK_DOUBLE -> log(Log.ERROR, bluetoothDeviceAddress, "parse", "DATA actionDataButton: CLICK_DOUBLE")
+                                Actions.NONE -> log(Log.ERROR, bluetoothDeviceAddress, "parse", "DATA actionDataButton: NONE")
+                                Actions.CLICK_SHORT -> log(Log.ERROR, bluetoothDeviceAddress, "parse", "DATA actionDataButton: CLICK_SHORT")
+                                Actions.CLICK_LONG -> log(Log.ERROR, bluetoothDeviceAddress, "parse", "DATA actionDataButton: CLICK_LONG")
+                                Actions.CLICK_DOUBLE -> log(Log.ERROR, bluetoothDeviceAddress, "parse", "DATA actionDataButton: CLICK_DOUBLE")
                                 else -> log(Log.ERROR, bluetoothDeviceAddress, "parse", "DATA actionDataButton: Unknown")
                                 //@formatter:on
                             }
@@ -256,6 +275,13 @@ object PbBleDeviceFinder2 {
                         if (LOG_DATA_VERBOSE) {
                             log(Log.INFO, bluetoothDeviceAddress, "parse", "DATA modelNumber=$modelNumber (0x${Utils.toHexString(modelNumber, 1)})")
                         }
+                        triggers.add(Trigger.TriggerBeepingAndFlashing(actionDataBeepingAndFlashing.toInt() == 1))
+                        triggers.add(Trigger.TriggerShortClick(actionDataButton == Actions.CLICK_SHORT, actionSequence, actionCounter))
+                        triggers.add(Trigger.TriggerLongClick(actionDataButton == Actions.CLICK_LONG, actionSequence, actionCounter))
+                        triggers.add(Trigger.TriggerDoubleClick(actionDataButton == Actions.CLICK_DOUBLE, actionSequence, actionCounter))
+                        triggers.add(Trigger.TriggerTemperatureCelsius(temperatureCelsius))
+                        triggers.add(Trigger.TriggerBatteryLevelMilliVolts(batteryMilliVolts))
+                        triggers.add(Trigger.TriggerAdvertisementSpeed(actionDataAdvertisementSpeed))
                         triggers
                     } finally {
                         manufacturerSpecificDataByteBuffer.order(originalByteOrder)
@@ -264,7 +290,7 @@ object PbBleDeviceFinder2 {
                         }
                     }
                 }
-                BleToolParser.BluetoothSigManufacturerIds.APPLE -> {
+                BluetoothSigManufacturerIds.APPLE -> {
                     if (LOG_IBEACON_VERBOSE) {
                         log(Log.INFO, bluetoothDeviceAddress, "parse", "IBEACON -- BEGIN --------")
                     }
@@ -298,20 +324,40 @@ object PbBleDeviceFinder2 {
                         log(Log.INFO, bluetoothDeviceAddress, "parse", "IBEACON -- END ----------")
                     }
                     when (uuid) {
-                        BleToolParser.Regions.TRACKING_FINDER, BleToolParser.Regions.TRACKING_STONE -> {
+                        Regions.TRACKING_FINDER, Regions.TRACKING_STONE -> {
                             if (LOG_REGION) {
                                 log(Log.INFO, bluetoothDeviceAddress, "parse", "IBEACON REGION TRACKING")
                             }
-                            val triggers: MutableSet<BleToolParser.Trigger<*>> = LinkedHashSet<BleToolParser.Trigger<*>>()
+                            val triggers: MutableSet<Trigger<*>> = LinkedHashSet<Trigger<*>>()
+                            triggers.add(Trigger.TriggerShortClick(false))
+                            triggers.add(Trigger.TriggerLongClick(false))
+                            triggers.add(Trigger.TriggerMotion(false))
                             return triggers
                         }
-                        BleToolParser.Regions.INTERRUPT -> {
+                        Regions.INTERRUPT -> {
                             if (LOG_REGION) {
                                 log(Log.INFO, bluetoothDeviceAddress, "parse", "IBEACON REGION INTERRUPT")
                             }
-                            val triggers: MutableSet<BleToolParser.Trigger<*>> = LinkedHashSet<BleToolParser.Trigger<*>>()
+                            val triggers: MutableSet<Trigger<*>> = LinkedHashSet<Trigger<*>>()
+                            triggers.add(Trigger.TriggerContinuousScan())
+                            triggers.add(Trigger.TriggerShortClick(false))
+                            triggers.add(Trigger.TriggerLongClick(false))
                             return triggers
                         }
+                        /*
+                        case Regions.MOTION: {
+                            if (LOG_REGION) {
+                                log(PbLogLevel.Info, bluetoothDeviceAddress,
+                                        "parse", "IBEACON REGION MOTION");
+                            }
+                            // non-null to allow processing of this device and reset click state
+                            triggers = new LinkedHashSet<>();
+                            triggers.add(new TriggerMotion(true));
+                            triggers.add(new TriggerShortClick(false));
+                            triggers.add(new TriggerLongClick(false));
+                            return triggers;
+                        }
+                        */
                         else -> {
                             if (LOG_REGION) {
                                 //@formatter:off
