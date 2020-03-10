@@ -4,26 +4,6 @@ abstract class Trigger<T>(
     @Suppress("MemberVisibilityCanBePrivate") val isImmediate: Boolean,
     val value: T
 ) {
-    companion object {
-        fun toString(triggers: Set<Trigger<*>>?): String? {
-            if (triggers == null) {
-                return "null"
-            }
-            val sb = StringBuilder()
-            sb.append('[')
-            val iterator: Iterator<Trigger<*>> = triggers.iterator()
-            while (iterator.hasNext()) {
-                val trigger: Trigger<*>? = iterator.next()
-                sb.append(trigger)
-                if (iterator.hasNext()) {
-                    sb.append(", ")
-                }
-            }
-            sb.append(']')
-            return sb.toString()
-        }
-    }
-
     /**
      * Used to determine if the trigger should be removed from notifications of updates.
      */
