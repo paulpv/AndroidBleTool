@@ -13,6 +13,10 @@ public class ReflectionUtils {
     private ReflectionUtils() {
     }
 
+    public static String instanceName(@NonNull Object o) {
+        return o.getClass().getSimpleName() + '@' + Integer.toHexString(o.hashCode());
+    }
+
     public static <T> Class<T> getClass(T o) {
         //noinspection unchecked
         return (Class<T>) ((o instanceof Class<?>) ? o : (o != null ? o.getClass() : null));

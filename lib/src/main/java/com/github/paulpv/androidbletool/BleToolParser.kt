@@ -6,8 +6,9 @@ import android.os.ParcelUuid
 import android.util.Log
 import android.util.SparseArray
 import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
-import com.github.paulpv.androidbletool.devices.PbBleDeviceFinder2
-import com.github.paulpv.androidbletool.devices.Trigger
+import com.github.paulpv.androidbletool.devices.PebblebeeDeviceFinder2
+import com.github.paulpv.androidbletool.devices.Triggers.Trigger
+import com.github.paulpv.androidbletool.devices.Triggers.TriggerSignalLevelRssi
 import com.github.paulpv.androidbletool.gatt.GattUuid
 import com.github.paulpv.androidbletool.logging.MyLog
 import com.github.paulpv.androidbletool.utils.RuntimeUtils
@@ -37,162 +38,6 @@ class BleToolParser(private val parsers: List<AbstractParser>) {
     interface BluetoothSigManufacturerIds {
         companion object {
             const val APPLE: Int = 0x004C
-        }
-    }
-
-    /**
-     * NOTE that these are the reverse of [PebblebeeMacAddressPrefix]
-     */
-    interface PebblebeeManufacturerIds {
-        companion object {
-            const val PEBBLEBEE_HONEY_DRAGON_HORNET: Int = 0x0A0E
-            const val PETHUB_SIGNAL: Int = 0x0B0E
-            const val PEBBLEBEE_STONE: Int = 0x0C0E
-            const val PEBBLEBEE_FINDER1: Int = 0x0E0E
-            const val PEBBLEBEE_FINDER2: Int = 0x060E
-            const val PEBBLEBEE_BUZZER1: Int = 0x0F0E // Buzzer1/Nock
-            const val PEBBLEBEE_BUZZER2: Int = 0x100E // Buzzer2/LocationMarker
-            const val PEBBLEBEE_CARD: Int = 0x050E
-            val ALL = Collections.unmodifiableSet(
-                HashSet(
-                    listOf(
-                        PEBBLEBEE_HONEY_DRAGON_HORNET,
-                        PETHUB_SIGNAL,
-                        PEBBLEBEE_STONE,
-                        PEBBLEBEE_FINDER1,
-                        PEBBLEBEE_FINDER2,
-                        PEBBLEBEE_BUZZER1,
-                        PEBBLEBEE_BUZZER2,
-                        PEBBLEBEE_CARD
-                    )
-                )
-            )
-        }
-    }
-
-    /**
-     * NOTE that these are the reverse of [PebblebeeManufacturerIds]
-     */
-    interface PebblebeeMacAddressPrefix {
-        companion object {
-            const val PEBBLEBEE_HONEY_DRAGON_HORNET: Int = 0x0E0A
-            const val PEBBLEBEE_HONEY_DRAGON_HORNET_STRING = "0e0a"
-            const val PETHUB_SIGNAL: Int = 0x0E0B
-            const val PETHUB_SIGNAL_STRING = "0e0b"
-            const val PEBBLEBEE_STONE: Int = 0x0E0C
-            const val PEBBLEBEE_STONE_STRING = "0e0c"
-            const val PEBBLEBEE_FINDER1: Int = 0x0E0E
-            const val PEBBLEBEE_FINDER1_STRING = "0e0e"
-            const val PEBBLEBEE_FINDER2: Int = 0x0E06
-            const val PEBBLEBEE_FINDER2_STRING = "0e06"
-            const val PEBBLEBEE_BUZZER1: Int = 0x0E0F // Buzzer1/Nock
-            const val PEBBLEBEE_BUZZER1_STRING = "0e0f"
-            const val PEBBLEBEE_BUZZER2: Int = 0x0E10 // Buzzer2/LocationMarker
-            const val PEBBLEBEE_BUZZER2_STRING = "0e10"
-            const val PEBBLEBEE_CARD: Int = 0x0E05
-            const val PEBBLEBEE_CARD_STRING = "0e05"
-        }
-    }
-
-    internal interface PebblebeeDeviceCaseSensitiveName {
-        companion object {
-            const val PEBBLEBEE_HONEY = "PebbleBee" // Honey
-            const val PEBBLEBEE_DRAGON_HORNET = "Pebblebee" // Dragon/Hornet
-            const val PETHUB_SIGNAL = "SIGNAL" // Pethub Signal
-            const val FINDER = "FNDR" // Finder
-            const val BUZZER1_0_0 = "smartnock" // Buzzer1/Nock
-            const val BUZZER1_0_1 = "snck" // Buzzer1/Nock
-            const val BUZZER2 = "BCMK" // Buzzer2/LocationMarker
-            const val CARD = "CARD" // Black Card
-            const val FOUND = "FND" // Found
-            const val LUMA = "LUMA" // Luma
-            val ALL = Collections.unmodifiableSet(
-                HashSet(
-                    listOf(
-                        PEBBLEBEE_HONEY,
-                        PEBBLEBEE_DRAGON_HORNET,
-                        PETHUB_SIGNAL,
-                        FINDER,
-                        BUZZER1_0_0,
-                        BUZZER1_0_1,
-                        BUZZER2,
-                        CARD,
-                        FOUND,
-                        LUMA
-                    )
-                )
-            )
-        }
-    }
-
-    interface Regions {
-        companion object {
-            /**
-             * Normal UUID for ranging, turned off when button held for 10 secs (button only mode)
-             */
-            const val TRACKING_STONE = "d149cb95-f212-4a20-8a17-e3a2f508c1ff"
-            const val TRACKING_FINDER = "d149cb95-f212-4a20-8a17-e3a2f508c1aa"
-
-            /**
-             * Transmits after a single button or hold button (3 secs then release), currently transmits fast broadcast 2S.
-             * Following the Interrupt period the Data for 2S.
-             * Then reverts to Tracking UUID (unless off).
-             */
-            const val INTERRUPT = "d149cb95-f212-4a20-8a17-e3a2f508c1cc"
-
-            /**
-             * Transmits following a motion for 10S, if it keeps moving it will keep TX's.
-             * Then reverts to Tracking UUID (unless off)
-             */
-            const val MOTION = "d149cb95-f212-4a20-8a17-e3a2f508c1ee"
-        }
-    }
-
-    object AdvertisementSpeed {
-        const val FAST: Byte = 0
-        const val SLOW: Byte = 1
-        fun toString(value: Byte): String {
-            val s: String = when (value) {
-                FAST -> "FAST"
-                SLOW -> "SLOW"
-                else -> "UNKNOWN"
-            }
-            return "$s($value)"
-        }
-    }
-
-
-    object Actions {
-        const val NONE: Byte = 0
-        const val CLICK_SHORT: Byte = 1
-        const val CLICK_LONG: Byte = 2
-        const val CLICK_DOUBLE: Byte = 3
-        fun toString(value: Byte): String {
-            val s: String = when (value) {
-                NONE -> "NONE"
-                CLICK_SHORT -> "CLICK_SHORT"
-                CLICK_LONG -> "CLICK_LONG"
-                CLICK_DOUBLE -> "CLICK_DOUBLE"
-                else -> "UNKNOWN"
-            }
-            return "$s($value)"
-        }
-    }
-
-    object ActionSequence {
-        const val NeverPressed: Byte = 0
-        const val JustPressed: Byte = 1
-        const val Resetting: Byte = 2
-        const val PressedBefore: Byte = 4
-        fun toString(value: Byte): String {
-            val s: String = when (value) {
-                NeverPressed -> "NeverPressed"
-                JustPressed -> "JustPressed"
-                Resetting -> "Resetting"
-                PressedBefore -> "PressedBefore"
-                else -> "UNKNOWN"
-            }
-            return "$s($value)"
         }
     }
 
@@ -255,10 +100,9 @@ class BleToolParser(private val parsers: List<AbstractParser>) {
         protected val debugModelName: String,
         private val configuration: Configuration
     ) {
-
         private val debugModelHashTag = "#${debugModelName.toUpperCase(Locale.ROOT)}"
 
-        open fun getDeviceNameOrScanRecordName(bluetoothDevice: BluetoothDevice?, scanRecord: ScanRecord?): String? {
+        fun getDeviceNameOrScanRecordName(bluetoothDevice: BluetoothDevice?, scanRecord: ScanRecord?): String? {
             var name: String? = null
             if (bluetoothDevice != null) {
                 name = bluetoothDevice.name
@@ -298,8 +142,9 @@ class BleToolParser(private val parsers: List<AbstractParser>) {
             bluetoothDevice: BluetoothDevice,
             serviceUuids: MutableList<ParcelUuid>,
             manufacturerId: Int,
-            manufacturerSpecificDataByteBuffer: ByteBuffer
-        ): Set<Trigger<*>>?
+            manufacturerSpecificDataByteBuffer: ByteBuffer,
+            triggers: MutableSet<Trigger<*>>
+        ): Boolean
     }
 
     private fun logManufacturerSpecificData(logLevel: Int, tag: String, debugInfo: String, manufacturerSpecificData: SparseArray<ByteArray>?) {
@@ -320,11 +165,41 @@ class BleToolParser(private val parsers: List<AbstractParser>) {
         val scanResult = bleScanResult.scanResult
         val bluetoothDevice = scanResult.device
 
+        val scanRecord = scanResult.scanRecord ?: return null
+
+        var parser: AbstractParser? = null
+        val triggers: MutableSet<Trigger<*>> = LinkedHashSet<Trigger<*>>()
+        val it = parsers.iterator()
+        while (it.hasNext()) {
+            parser = it.next()
+            triggers.clear()
+            if (parseScan(parser, bluetoothDevice, scanRecord, triggers)) {
+                break
+            }
+            parser = null
+        }
+        if (parser == null) {
+            if (true && BuildConfig.DEBUG) {
+                Log.v(TAG, "onThreadWorkerProcessScannedDevice: no parser recognized the scanned device; ignoring")
+            }
+            return null
+        }
+
+        // Always report RSSI for all parsed/recognized devices
+        triggers.add(TriggerSignalLevelRssi(scanResult.rssi))
+
+        return triggers
+    }
+
+    private fun parseScan(
+        parser: AbstractParser,
+        bluetoothDevice: BluetoothDevice,
+        scanRecord: ScanRecord,
+        triggers: MutableSet<Trigger<*>>
+    ): Boolean {
         val bluetoothDeviceMacAddress: String = bluetoothDevice.address
 
         val debugInfo = "$bluetoothDeviceMacAddress parseScan"
-
-        val scanRecord = scanResult.scanRecord ?: return null
 
         val serviceUuids = scanRecord.serviceUuids
         val serviceData = scanRecord.serviceData
@@ -336,41 +211,34 @@ class BleToolParser(private val parsers: List<AbstractParser>) {
             val manufacturerSpecificDataBytes = manufacturerSpecificData.get(manufacturerId)
             val manufacturerSpecificDataByteBuffer = ByteBuffer.wrap(manufacturerSpecificDataBytes)
 
-            for (parser: AbstractParser in parsers) {
+            manufacturerSpecificDataByteBuffer.rewind()
 
-                manufacturerSpecificDataByteBuffer.rewind()
-
-                var logVerbose = false
-                @Suppress("SimplifyBooleanWithConstants")
-                if (false && BuildConfig.DEBUG) {
-                    logVerbose = logVerbose or (parser is PbBleDeviceFinder2.Parser)
-                }
-                if (logVerbose) {
-                    Log.e(TAG, "$debugInfo: serviceUuids=$serviceUuids")
-                    Log.e(TAG, "$debugInfo: serviceData=$serviceData")
-                    logManufacturerSpecificData(Log.ERROR, TAG, debugInfo, manufacturerSpecificData)
-                }
-
-                val triggers = parser.parseScan(scanRecord, bluetoothDevice, serviceUuids, manufacturerId, manufacturerSpecificDataByteBuffer)
-                if (logVerbose) {
-                    Log.e(TAG, "$debugInfo: triggers=$triggers")
-                }
-                if (triggers == null) {
-                    continue
-                }
-
-                val position = manufacturerSpecificDataByteBuffer.position()
-                val length = manufacturerSpecificDataByteBuffer.limit()
-                val remaining = length - position
-                if (remaining > 0) {
-                    Log.w(TAG, "$debugInfo: manufacturerSpecificData $remaining unprocessed bytes")
-                    logManufacturerSpecificData(Log.WARN, TAG, debugInfo, manufacturerSpecificData)
-                }
-
-                return triggers
+            var logVerbose = false
+            @Suppress("SimplifyBooleanWithConstants")
+            if (true && BuildConfig.DEBUG) {
+                logVerbose = logVerbose or (parser is PebblebeeDeviceFinder2.Parser)
             }
+            if (logVerbose) {
+                Log.e(TAG, "$debugInfo: serviceUuids=$serviceUuids")
+                Log.e(TAG, "$debugInfo:  serviceData=$serviceData")
+                logManufacturerSpecificData(Log.ERROR, TAG, debugInfo, manufacturerSpecificData)
+            }
+
+            if (!parser.parseScan(scanRecord, bluetoothDevice, serviceUuids, manufacturerId, manufacturerSpecificDataByteBuffer, triggers)) {
+                continue
+            }
+
+            val position = manufacturerSpecificDataByteBuffer.position()
+            val length = manufacturerSpecificDataByteBuffer.limit()
+            val remaining = length - position
+            if (remaining > 0) {
+                Log.w(TAG, "$debugInfo: manufacturerSpecificData $remaining unprocessed bytes")
+                logManufacturerSpecificData(Log.WARN, TAG, debugInfo, manufacturerSpecificData)
+            }
+
+            return true
         }
 
-        return null
+        return false
     }
 }
