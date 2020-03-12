@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.ScanRecord
 import android.os.ParcelUuid
 import android.util.Log
+import androidx.core.util.Consumer
 import com.github.paulpv.androidbletool.BleDevice
 import com.github.paulpv.androidbletool.BleToolParser
 import com.github.paulpv.androidbletool.BleToolParser.BluetoothSigManufacturerIds
@@ -36,53 +37,65 @@ object PebblebeeDeviceFinder2 {
     @Suppress("unused")
     private val PLAY_JINGLE_COUNT_4 = byteArrayOf(0x80.toByte(), 0x01)
 
-    // TODO:(pv) Success/Fail progress callbacks for each step along the way...
     @JvmStatic
-    fun requestBeep(bleDevice: BleDevice) {
+    fun requestBeep(bleDevice: BleDevice, callbacks: PebblebeeDevice.RequestProgress? = null) {
         val gattHandler = bleDevice.gattHandler
 
-        val runDisconnect = Runnable {
-            Log.e(TAG, "DISCONNECTING")
-            gattHandler.disconnect(runAfterDisconnect = Runnable {
-                Log.e(TAG, "DISCONNECTED!")
-            })
+        val runDisconnect = Consumer<Boolean> { success ->
+            Log.i(TAG, "DISCONNECTING")
+            callbacks?.onDisconnecting()
+            if (!gattHandler.disconnect(runAfterDisconnect = Runnable {
+                    Log.i(TAG, "DISCONNECTED!")
+                    callbacks?.onDisconnected(success)
+                })) {
+                Log.e(TAG, "disconnect failed")
+                callbacks?.onDisconnected(false)
+            }
         }
+
         val runBeep = Runnable {
             val service = GattUuids.PEBBLEBEE_FINDER_SERVICE.uuid
             val characteristic = GattUuids.PEBBLEBEE_FINDER_CHARACTERISTIC1.uuid
             val value = PLAY_JINGLE_COUNT_4
-            Log.e(TAG, "WRITING")
+            Log.i(TAG, "REQUESTING")
+            callbacks?.onRequesting()
             if (!gattHandler.characteristicWrite(
                     serviceUuid = service,
                     characteristicUuid = characteristic,
                     value = value,
                     characteristicWriteType = GattHandler.CharacteristicWriteType.DefaultWithResponse,
                     runAfterSuccess = Runnable {
-                        Log.e(TAG, "WRITE SUCCESS!")
-                        runDisconnect.run()
+                        Log.i(TAG, "REQUEST SUCCESS!")
+                        callbacks?.onRequested(true)
+                        runDisconnect.accept(true)
                     },
                     runAfterFail = Runnable {
-                        Log.e(TAG, "WRITE FAIL!")
-                        runDisconnect.run()
+                        Log.e(TAG, "REQUEST FAIL!")
+                        callbacks?.onRequested(false)
+                        runDisconnect.accept(false)
                     }
                 )
             ) {
-                runDisconnect.run()
+                Log.e(TAG, "characteristicWrite failed")
+                runDisconnect.accept(false)
             }
         }
 
         if (gattHandler.isConnectingOrConnectedAndNotDisconnecting) {
             runBeep.run()
         } else {
-            Log.e(TAG, "CONNECTING")
+            Log.i(TAG, "CONNECTING")
+            callbacks?.onConnecting()
             if (!gattHandler.connect(runAfterConnect = Runnable {
-                    Log.e(TAG, "CONNECT SUCCESS!")
+                    Log.i(TAG, "CONNECT SUCCESS!")
+                    callbacks?.onConnected()
                     runBeep.run()
                 }, runAfterFail = Runnable {
                     Log.e(TAG, "CONNECT FAIL!")
-                    runDisconnect.run()
+                    runDisconnect.accept(false)
                 })) {
-                runDisconnect.run()
+                Log.e(TAG, "connect failed")
+                runDisconnect.accept(false)
             }
         }
     }

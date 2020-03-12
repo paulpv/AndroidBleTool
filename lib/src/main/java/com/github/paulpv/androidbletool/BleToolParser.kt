@@ -45,9 +45,11 @@ class BleToolParser(private val parsers: List<AbstractParser>) {
         private val mDeviceAddressPrefixFilters: MutableSet<String>
         private val mServiceUuids: MutableSet<ParcelUuid>
         private val mDeviceNamesLowerCase: MutableSet<String>
+        @Suppress("unused")
         val deviceAddressPrefixFilters: Set<String>
             get() = Collections.unmodifiableSet(mDeviceAddressPrefixFilters)
 
+        @Suppress("unused")
         val serviceUuids: Set<ParcelUuid>
             get() = Collections.unmodifiableSet(mServiceUuids)
 
@@ -147,7 +149,7 @@ class BleToolParser(private val parsers: List<AbstractParser>) {
         ): Boolean
     }
 
-    private fun logManufacturerSpecificData(logLevel: Int, tag: String, debugInfo: String, manufacturerSpecificData: SparseArray<ByteArray>?) {
+    private fun logManufacturerSpecificData(logLevel: Int, @Suppress("SameParameterValue") tag: String, debugInfo: String, manufacturerSpecificData: SparseArray<ByteArray>?) {
         if (manufacturerSpecificData != null && manufacturerSpecificData.size() > 0) {
             for (i in 0 until manufacturerSpecificData.size()) {
                 val manufacturerId = manufacturerSpecificData.keyAt(i)
@@ -168,7 +170,7 @@ class BleToolParser(private val parsers: List<AbstractParser>) {
         val scanRecord = scanResult.scanRecord ?: return null
 
         var parser: AbstractParser? = null
-        val triggers: MutableSet<Trigger<*>> = LinkedHashSet<Trigger<*>>()
+        val triggers = mutableSetOf<Trigger<*>>()
         val it = parsers.iterator()
         while (it.hasNext()) {
             parser = it.next()
@@ -180,13 +182,19 @@ class BleToolParser(private val parsers: List<AbstractParser>) {
         }
         if (parser == null) {
             if (true && BuildConfig.DEBUG) {
-                Log.v(TAG, "onThreadWorkerProcessScannedDevice: no parser recognized the scanned device; ignoring")
+                Log.v(TAG, "parseScan: no parser recognized the scanned device; ignoring")
             }
             return null
         }
 
         // Always report RSSI for all parsed/recognized devices
         triggers.add(TriggerSignalLevelRssi(scanResult.rssi))
+
+        if (true && BuildConfig.DEBUG) {
+            Log.v(TAG, "parseScan: parser=$parser")
+            //Log.v(TAG, "parseScan: deviceModelNumber=" + PbBleDeviceModelNumbers.toString(deviceModelNumber))
+            Log.v(TAG, "parseScan: triggers(" + triggers.size + ")=$triggers")
+        }
 
         return triggers
     }

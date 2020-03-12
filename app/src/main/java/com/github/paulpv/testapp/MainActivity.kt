@@ -17,9 +17,9 @@ import com.github.paulpv.androidbletool.BleScanResult
 import com.github.paulpv.androidbletool.BleTool
 import com.github.paulpv.androidbletool.BleTool.BleToolObserver
 import com.github.paulpv.androidbletool.BleTool.DeviceScanObserver
-import com.github.paulpv.androidbletool.devices.PebblebeeDeviceFinder2
 import com.github.paulpv.androidbletool.R
 import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
+import com.github.paulpv.androidbletool.devices.PebblebeeDeviceFinder2
 import com.github.paulpv.androidbletool.exceptions.BleScanException
 import com.github.paulpv.androidbletool.utils.Utils
 import com.github.paulpv.androidbletool.utils.Utils.TAG
@@ -63,7 +63,31 @@ class MainActivity : AppCompatActivity(), DeviceScanObserver, BleToolObserver {
             override fun onItemSelected(item: DeviceInfo) {
                 Log.e(TAG, "onItemSelected: Make $item beep!!!")
                 val bleDevice = bleTool!!.getBleDevice(item.macAddress)
-                PebblebeeDeviceFinder2.requestBeep(bleDevice)
+                PebblebeeDeviceFinder2.requestBeep(bleDevice, object : PebblebeeDeviceFinder2.RequestBeepProgress {
+                    override fun onConnecting() {
+                        Log.e(TAG, "CONNECTING")
+                    }
+
+                    override fun onConnected() {
+                        Log.e(TAG, "CONNECTED")
+                    }
+
+                    override fun onWriting() {
+                        Log.e(TAG, "WRITING")
+                    }
+
+                    override fun onWrote() {
+                        Log.e(TAG, "WROTE")
+                    }
+
+                    override fun onDisconnecting() {
+                        Log.e(TAG, "DISCONNECTING")
+                    }
+
+                    override fun onDisconnected(success: Boolean) {
+                        Log.e(TAG, "DISCONNECTED success=$success")
+                    }
+                })
             }
         })
 

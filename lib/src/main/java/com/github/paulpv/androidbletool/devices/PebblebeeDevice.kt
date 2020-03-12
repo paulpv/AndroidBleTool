@@ -150,4 +150,17 @@ class PebblebeeDevice(protected val TAG: String, val modelNumber: Int, private v
         }
         return false
     }
+
+    //
+    //
+    //
+
+    interface RequestProgress {
+        fun onConnecting()
+        fun onConnected()
+        fun onRequesting()
+        fun onRequested(success: Boolean)
+        fun onDisconnecting()
+        fun onDisconnected(success: Boolean)
+    }
 }
