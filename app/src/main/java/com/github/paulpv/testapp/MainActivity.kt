@@ -62,7 +62,9 @@ class MainActivity : AppCompatActivity(), DeviceScanObserver, BleToolObserver {
         devicesAdapter = DevicesAdapter(this, SortBy.SignalLevelRssi)
         devicesAdapter!!.setEventListener(object : DevicesAdapter.EventListener<DeviceInfo> {
             override fun onItemSelected(item: DeviceInfo) {
-                requestBeep(item.macAddress)
+                val macAddress = item.macAddress
+                Log.e(TAG, "onItemSelected: Make $macAddress beep!!!")
+                requestBeep(macAddress)
             }
         })
 
@@ -220,7 +222,7 @@ class MainActivity : AppCompatActivity(), DeviceScanObserver, BleToolObserver {
     //
 
     private fun requestBeep(macAddress: String) {
-        Log.e(TAG, "onItemSelected: Make $macAddress beep!!!")
+        Log.e(TAG, "requestBeep($macAddress)")
         val bleDevice = bleTool!!.getBleDevice(macAddress)
         // TODO:(pv) Determine device model; for now assume Finder2...
         PebblebeeDeviceFinder2.requestBeep(bleDevice, object : PebblebeeDevice.RequestProgress {
