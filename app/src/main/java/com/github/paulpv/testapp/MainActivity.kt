@@ -19,6 +19,7 @@ import com.github.paulpv.androidbletool.BleTool.BleToolObserver
 import com.github.paulpv.androidbletool.BleTool.DeviceScanObserver
 import com.github.paulpv.androidbletool.R
 import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
+import com.github.paulpv.androidbletool.devices.PebblebeeDevice
 import com.github.paulpv.androidbletool.devices.PebblebeeDeviceFinder2
 import com.github.paulpv.androidbletool.exceptions.BleScanException
 import com.github.paulpv.androidbletool.utils.Utils
@@ -61,33 +62,7 @@ class MainActivity : AppCompatActivity(), DeviceScanObserver, BleToolObserver {
         devicesAdapter = DevicesAdapter(this, SortBy.SignalLevelRssi)
         devicesAdapter!!.setEventListener(object : DevicesAdapter.EventListener<DeviceInfo> {
             override fun onItemSelected(item: DeviceInfo) {
-                Log.e(TAG, "onItemSelected: Make $item beep!!!")
-                val bleDevice = bleTool!!.getBleDevice(item.macAddress)
-                PebblebeeDeviceFinder2.requestBeep(bleDevice, object : PebblebeeDeviceFinder2.RequestBeepProgress {
-                    override fun onConnecting() {
-                        Log.e(TAG, "CONNECTING")
-                    }
-
-                    override fun onConnected() {
-                        Log.e(TAG, "CONNECTED")
-                    }
-
-                    override fun onWriting() {
-                        Log.e(TAG, "WRITING")
-                    }
-
-                    override fun onWrote() {
-                        Log.e(TAG, "WROTE")
-                    }
-
-                    override fun onDisconnecting() {
-                        Log.e(TAG, "DISCONNECTING")
-                    }
-
-                    override fun onDisconnected(success: Boolean) {
-                        Log.e(TAG, "DISCONNECTED success=$success")
-                    }
-                })
+                requestBeep(item.macAddress)
             }
         })
 
@@ -238,5 +213,40 @@ class MainActivity : AppCompatActivity(), DeviceScanObserver, BleToolObserver {
         Log.w(TAG, "onDeviceRemoved: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} item=${item}")
         devicesAdapter!!.remove(item)
         updateScanCount()
+    }
+
+    //
+    //
+    //
+
+    private fun requestBeep(macAddress: String) {
+        Log.e(TAG, "onItemSelected: Make $macAddress beep!!!")
+        val bleDevice = bleTool!!.getBleDevice(macAddress)
+        // TODO:(pv) Determine device model; for now assume Finder2...
+        PebblebeeDeviceFinder2.requestBeep(bleDevice, object : PebblebeeDevice.RequestProgress {
+            override fun onConnecting() {
+                Log.e(TAG, "CONNECTING")
+            }
+
+            override fun onConnected() {
+                Log.e(TAG, "CONNECTED")
+            }
+
+            override fun onRequesting() {
+                Log.e(TAG, "REQUESTING")
+            }
+
+            override fun onRequested(success: Boolean) {
+                Log.e(TAG, "REQUESTED success=$success")
+            }
+
+            override fun onDisconnecting() {
+                Log.e(TAG, "DISCONNECTING")
+            }
+
+            override fun onDisconnected(success: Boolean) {
+                Log.e(TAG, "DISCONNECTED success=$success")
+            }
+        })
     }
 }
