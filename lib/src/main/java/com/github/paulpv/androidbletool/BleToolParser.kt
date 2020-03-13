@@ -6,9 +6,10 @@ import android.os.ParcelUuid
 import android.util.Log
 import android.util.SparseArray
 import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
-import com.github.paulpv.androidbletool.devices.PebblebeeDeviceFinder2
 import com.github.paulpv.androidbletool.devices.Triggers.Trigger
 import com.github.paulpv.androidbletool.devices.Triggers.TriggerSignalLevelRssi
+import com.github.paulpv.androidbletool.devices.pebblebee.PebblebeeDevice
+import com.github.paulpv.androidbletool.devices.pebblebee.PebblebeeDeviceFinder2
 import com.github.paulpv.androidbletool.gatt.GattUuid
 import com.github.paulpv.androidbletool.logging.MyLog
 import com.github.paulpv.androidbletool.utils.RuntimeUtils
@@ -17,7 +18,10 @@ import com.github.paulpv.androidbletool.utils.Utils.TAG
 import java.nio.ByteBuffer
 import java.util.*
 
-class BleToolParser(private val parsers: List<AbstractParser>) {
+class BleToolParser(
+    private val deviceFactory: BleDeviceFactory<*>,
+    private val parsers: List<BleDeviceParser>
+) {
     companion object {
         private val TAG = TAG(BleToolParser::class.java)
 
@@ -45,6 +49,7 @@ class BleToolParser(private val parsers: List<AbstractParser>) {
         private val mDeviceAddressPrefixFilters: MutableSet<String>
         private val mServiceUuids: MutableSet<ParcelUuid>
         private val mDeviceNamesLowerCase: MutableSet<String>
+
         @Suppress("unused")
         val deviceAddressPrefixFilters: Set<String>
             get() = Collections.unmodifiableSet(mDeviceAddressPrefixFilters)
@@ -97,7 +102,7 @@ class BleToolParser(private val parsers: List<AbstractParser>) {
         }
     }
 
-    abstract class AbstractParser(
+    abstract class BleDeviceParser(
         private val TAG: String,
         protected val debugModelName: String,
         private val configuration: Configuration
@@ -139,6 +144,8 @@ class BleToolParser(private val parsers: List<AbstractParser>) {
             }
         }
 
+        abstract val modelNumber: Int
+
         abstract fun parseScan(
             scanRecord: ScanRecord,
             bluetoothDevice: BluetoothDevice,
@@ -149,7 +156,12 @@ class BleToolParser(private val parsers: List<AbstractParser>) {
         ): Boolean
     }
 
-    private fun logManufacturerSpecificData(logLevel: Int, @Suppress("SameParameterValue") tag: String, debugInfo: String, manufacturerSpecificData: SparseArray<ByteArray>?) {
+    private fun logManufacturerSpecificData(
+        logLevel: Int,
+        @Suppress("SameParameterValue") tag: String,
+        debugInfo: String,
+        manufacturerSpecificData: SparseArray<ByteArray>?
+    ) {
         if (manufacturerSpecificData != null && manufacturerSpecificData.size() > 0) {
             for (i in 0 until manufacturerSpecificData.size()) {
                 val manufacturerId = manufacturerSpecificData.keyAt(i)
@@ -162,14 +174,14 @@ class BleToolParser(private val parsers: List<AbstractParser>) {
         }
     }
 
-    fun parseScan(item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>): Set<Trigger<*>>? {
+    fun parseScan(item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>): BleDevice? {
         val bleScanResult = item.value
         val scanResult = bleScanResult.scanResult
         val bluetoothDevice = scanResult.device
 
         val scanRecord = scanResult.scanRecord ?: return null
 
-        var parser: AbstractParser? = null
+        var parser: BleDeviceParser? = null
         val triggers = mutableSetOf<Trigger<*>>()
         val it = parsers.iterator()
         while (it.hasNext()) {
@@ -187,20 +199,28 @@ class BleToolParser(private val parsers: List<AbstractParser>) {
             return null
         }
 
-        // Always report RSSI for all parsed/recognized devices
+        // Always ensure rssi trigger
         triggers.add(TriggerSignalLevelRssi(scanResult.rssi))
 
         if (true && BuildConfig.DEBUG) {
             Log.v(TAG, "parseScan: parser=$parser")
-            //Log.v(TAG, "parseScan: deviceModelNumber=" + PbBleDeviceModelNumbers.toString(deviceModelNumber))
             Log.v(TAG, "parseScan: triggers(" + triggers.size + ")=$triggers")
         }
 
-        return triggers
+        val device = deviceFactory.getDevice(bluetoothDevice, parser, triggers)
+        if (true && BuildConfig.DEBUG) {
+            Log.v(TAG, "parseScan: device=$device")
+        }
+
+        if (device is PebblebeeDevice) {
+            device.update(triggers)
+        }
+
+        return device
     }
 
     private fun parseScan(
-        parser: AbstractParser,
+        parser: BleDeviceParser,
         bluetoothDevice: BluetoothDevice,
         scanRecord: ScanRecord,
         triggers: MutableSet<Trigger<*>>

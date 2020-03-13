@@ -1,26 +1,24 @@
-package com.github.paulpv.androidbletool.devices
+package com.github.paulpv.androidbletool.devices.pebblebee
 
 import android.util.Log
-import com.github.paulpv.androidbletool.devices.Triggers.Trigger
-import com.github.paulpv.androidbletool.devices.Triggers.TriggerSignalLevelRssi
+import com.github.paulpv.androidbletool.BleDevice
+import com.github.paulpv.androidbletool.devices.Features
+import com.github.paulpv.androidbletool.devices.Triggers
 import com.github.paulpv.androidbletool.gatt.GattHandler
-import com.github.paulpv.androidbletool.utils.ReflectionUtils
 
-class PebblebeeDevice(protected val TAG: String, val modelNumber: Int, private val gattHandler: GattHandler) : Features.IFeatureSignalLevelRssi {
+open class PebblebeeDevice(
+    protected val TAG: String,
+    val modelNumber: Int,
+    gattHandler: GattHandler
+) : BleDevice(gattHandler),
+    Features.IFeatureSignalLevelRssi {
     companion object {
         const val VERBOSE_LOG = false
     }
 
     interface IPebblebeeDeviceListener : Features.IFeatureSignalLevelRssiListener
 
-    private val macAddressLong = gattHandler.deviceAddressLong
-    val macAddressString = gattHandler.deviceAddressString
-
     private val featureSignalLevelRssi = Features.FeatureSignalLevelRssi(this)
-
-    constructor(other: PebblebeeDevice) : this(other.TAG, other.modelNumber, other.gattHandler) {
-        featureSignalLevelRssi.copy(other.featureSignalLevelRssi)
-    }
 
     override fun toString(): String {
         return toString(false)
@@ -28,16 +26,15 @@ class PebblebeeDevice(protected val TAG: String, val modelNumber: Int, private v
 
     fun toString(simple: Boolean): String {
         val sb = StringBuilder()
-        sb.append(ReflectionUtils.instanceName(this))
-        sb.append('{')
-            .append("macAddressString=").append(macAddressString)
-            .append(", macAddressLong=").append(macAddressLong)
-            .append(", modelNumber=").append(PebblebeeDevices.PebblebeeDeviceModelNumbers.toString(modelNumber))
+            .append(", modelNumber=").append(
+                Pebblebee.DeviceModelNumber.toString(
+                    modelNumber
+                )
+            )
         if (!simple) {
             sb.append(", featureSignalLevelRssi=").append(featureSignalLevelRssi)
         }
-        sb.append('}')
-        return sb.toString()
+        return toString(this, sb.toString())
     }
 
     //
@@ -86,7 +83,7 @@ class PebblebeeDevice(protected val TAG: String, val modelNumber: Int, private v
 
     private val updateSyncLock = Any()
 
-    fun update(triggers: MutableSet<Trigger<*>>, forceRssiChange: Boolean): Boolean {
+    fun update(triggers: MutableSet<Triggers.Trigger<*>>, forceRssiChange: Boolean = false): Boolean {
         var immediate = false
 
         var forcedChanged: Boolean
@@ -105,7 +102,7 @@ class PebblebeeDevice(protected val TAG: String, val modelNumber: Int, private v
                     forcedChanged = false
                     changed = true
                 } else {
-                    if (forceRssiChange && trigger is TriggerSignalLevelRssi) {
+                    if (forceRssiChange && trigger is Triggers.TriggerSignalLevelRssi) {
                         forcedChanged = true
                         changed = true
                     } else {
@@ -143,24 +140,11 @@ class PebblebeeDevice(protected val TAG: String, val modelNumber: Int, private v
         return immediate
     }
 
-    fun update(trigger: Trigger<*>): Boolean {
-        if (trigger is TriggerSignalLevelRssi) {
+    protected open fun update(trigger: Triggers.Trigger<*>): Boolean {
+        if (trigger is Triggers.TriggerSignalLevelRssi) {
             featureSignalLevelRssi.setSignalLevelRssi(trigger)
             return true
         }
         return false
-    }
-
-    //
-    //
-    //
-
-    interface RequestProgress {
-        fun onConnecting()
-        fun onConnected()
-        fun onRequesting()
-        fun onRequested(success: Boolean)
-        fun onDisconnecting()
-        fun onDisconnected(success: Boolean)
     }
 }

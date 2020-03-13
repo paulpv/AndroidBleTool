@@ -92,17 +92,21 @@ class BleTool(
         abstract val scanningNotificationInfo: BleToolScanningNotificationInfo
 
         @Suppress("PropertyName")
-        val DEVICE_SCAN_TIMEOUT_MILLIS: Int?
+        open val DEVICE_SCAN_TIMEOUT_MILLIS: Int?
             get() = DEVICE_SCAN_TIMEOUT_MILLIS_DEFAULT
 
         @Suppress("PropertyName")
         abstract val SCAN_FILTERS: List<ScanFilter>
 
         @Suppress("PropertyName")
-        abstract val SCAN_PARSERS: List<BleToolParser.AbstractParser>
+        abstract val DEBUG_DEVICE_ADDRESS_FILTER: Set<String>?
 
         @Suppress("PropertyName")
-        abstract val DEBUG_DEVICE_ADDRESS_FILTER: Set<String>?
+        abstract val SCAN_PARSERS: List<BleToolParser.BleDeviceParser>
+
+        @Suppress("PropertyName")
+        open val DEVICE_FACTORY: BleDeviceFactory<*>
+            get() = BleDeviceFactory<BleDevice>()
     }
 
     //
@@ -336,6 +340,9 @@ class BleTool(
     private val handler = Handler(this.looper, Handler.Callback { msg -> this@BleTool.handleMessage(msg) })
     private var bluetoothAdapter = BluetoothUtils.getBluetoothAdapter(application)
 
+    val deviceFactory = configuration.DEVICE_FACTORY
+    private val parser = BleToolParser(deviceFactory, configuration.SCAN_PARSERS)
+
     @Suppress("MemberVisibilityCanBePrivate")
     val isBluetoothLowEnergySupported: Boolean
         get() = BluetoothUtils.isBluetoothLowEnergySupported(application)
@@ -451,6 +458,8 @@ class BleTool(
     init {
         Log.i(TAG, "+init")
 
+        deviceFactory.initialize(GattManager(application, this.looper))
+
         if (DEBUG_FORCE_PERSISTENT_SCANNING_RESET) {
             Log.e(TAG, "init: DEBUG persistentScanningReset()")
             persistentScanningReset()
@@ -542,6 +551,8 @@ class BleTool(
 
     private fun shutdown(runThenKillProcess: (() -> Unit)? = null) {
         persistentScanningStop()
+
+        deviceFactory.close()
 
         for (broadcastReceiver in broadcastReceivers) {
             broadcastReceiver.unregister()
@@ -1324,7 +1335,6 @@ class BleTool(
         val scanResult = bleScanResult.scanResult
         val bleDevice = scanResult.device
         val macAddressString = bleDevice.address
-        //val rssi = bleScanResult.rssi
         // @formatter:off
         Log.i(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceAdded: ADDED! bleScanResult=$bleScanResult")
         // @formatter:on
@@ -1349,11 +1359,9 @@ class BleTool(
         recentlyNearbyDevicesUpdatedDebounce.add(item)
     }
 
-    private val parser = BleToolParser(configuration.SCAN_PARSERS)
-
     private fun parseScan(item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) {
-        val triggers = parser.parseScan(item)
-        Log.e(TAG, "parseScan: triggers=$triggers")
+        val device = parser.parseScan(item)
+        //Log.e(TAG, "parseScan: device=$device")
     }
 
     private val recentlyNearbyDevicesUpdatedDebounce: MutableSet<ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>> = mutableSetOf()
@@ -1397,15 +1405,5 @@ class BleTool(
         // @formatter:on
         recentlyNearbyDevicesUpdatedDebounce.remove(item)
         deviceScanObservers.forEach { it.onDeviceRemoved(this, item) }
-    }
-
-    //
-    //
-    //
-
-    private val gattManager = GattManager(application, this.looper)
-
-    fun getBleDevice(macAddress: String): BleDevice {
-        return BleDevice.newDevice(gattManager, macAddress)
     }
 }

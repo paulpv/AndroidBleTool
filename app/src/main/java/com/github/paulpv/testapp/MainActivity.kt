@@ -13,14 +13,14 @@ import androidx.appcompat.widget.Toolbar
 import androidx.core.app.NavUtils
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.github.paulpv.androidbletool.BleDevice
 import com.github.paulpv.androidbletool.BleScanResult
 import com.github.paulpv.androidbletool.BleTool
 import com.github.paulpv.androidbletool.BleTool.BleToolObserver
 import com.github.paulpv.androidbletool.BleTool.DeviceScanObserver
 import com.github.paulpv.androidbletool.R
 import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
-import com.github.paulpv.androidbletool.devices.PebblebeeDevice
-import com.github.paulpv.androidbletool.devices.PebblebeeDeviceFinder2
+import com.github.paulpv.androidbletool.devices.Features
 import com.github.paulpv.androidbletool.exceptions.BleScanException
 import com.github.paulpv.androidbletool.utils.Utils
 import com.github.paulpv.androidbletool.utils.Utils.TAG
@@ -222,10 +222,13 @@ class MainActivity : AppCompatActivity(), DeviceScanObserver, BleToolObserver {
     //
 
     private fun requestBeep(macAddress: String) {
-        Log.e(TAG, "requestBeep($macAddress)")
-        val bleDevice = bleTool!!.getBleDevice(macAddress)
-        // TODO:(pv) Determine device model; for now assume Finder2...
-        PebblebeeDeviceFinder2.requestBeep(bleDevice, object : PebblebeeDevice.RequestProgress {
+        Log.i(TAG, "requestBeep($macAddress)")
+        val bleDevice = bleTool!!.deviceFactory.getDevice(macAddress)
+        if (bleDevice !is Features.IFeatureBeep) {
+            Log.e(TAG, "requestBeep: $bleDevice does not support IFeatureBeep")
+            return
+        }
+        bleDevice.requestBeep(true, object : BleDevice.RequestProgress {
             override fun onConnecting() {
                 Log.e(TAG, "CONNECTING")
             }

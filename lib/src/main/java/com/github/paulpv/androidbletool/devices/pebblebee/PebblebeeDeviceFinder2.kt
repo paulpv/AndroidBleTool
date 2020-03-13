@@ -1,17 +1,17 @@
-package com.github.paulpv.androidbletool.devices
+package com.github.paulpv.androidbletool.devices.pebblebee
 
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.ScanRecord
 import android.os.ParcelUuid
 import android.util.Log
 import androidx.core.util.Consumer
-import com.github.paulpv.androidbletool.BleDevice
 import com.github.paulpv.androidbletool.BleToolParser
 import com.github.paulpv.androidbletool.BleToolParser.BluetoothSigManufacturerIds
 import com.github.paulpv.androidbletool.BleToolParser.Configuration
 import com.github.paulpv.androidbletool.BluetoothUtils
 import com.github.paulpv.androidbletool.BuildConfig
-import com.github.paulpv.androidbletool.devices.PebblebeeDevices.*
+import com.github.paulpv.androidbletool.devices.Features
+import com.github.paulpv.androidbletool.devices.Triggers
 import com.github.paulpv.androidbletool.devices.Triggers.Trigger
 import com.github.paulpv.androidbletool.devices.Triggers.TriggerAdvertisementSpeed.AdvertisementSpeed
 import com.github.paulpv.androidbletool.gatt.GattHandler
@@ -22,91 +22,47 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.*
 
-object PebblebeeDeviceFinder2 {
-    private val TAG = TAG(PebblebeeDeviceFinder2::class.java)
+class PebblebeeDeviceFinder2(gattHandler: GattHandler) :
+    PebblebeeDevice("Finder2", PEBBLEBEE_DEVICE_MODEL_NUMBER, gattHandler),
+    Features.IFeatureBeep {
 
-    @Suppress("unused")
-    private val PLAY_JINGLE_COUNT_1 = byteArrayOf(0x01, 0x00)
+    companion object {
+        private val TAG = TAG(PebblebeeDeviceFinder2::class.java)
 
-    @Suppress("unused")
-    private val PLAY_JINGLE_COUNT_2 = byteArrayOf(0x01, 0x00, 0x00)
+        const val BEEP_DURATION_MILLIS = 26 * 1000
 
-    @Suppress("unused")
-    private val PLAY_JINGLE_COUNT_3 = byteArrayOf(0x01, 0x00, 0x00, 0x00)
-
-    @Suppress("unused")
-    private val PLAY_JINGLE_COUNT_4 = byteArrayOf(0x80.toByte(), 0x01)
-
-    @JvmStatic
-    fun requestBeep(bleDevice: BleDevice, callbacks: PebblebeeDevice.RequestProgress? = null) {
-        val gattHandler = bleDevice.gattHandler
-
-        val runDisconnect = Consumer<Boolean> { success ->
-            Log.i(TAG, "DISCONNECTING")
-            callbacks?.onDisconnecting()
-            if (!gattHandler.disconnect(runAfterDisconnect = Runnable {
-                    Log.i(TAG, "DISCONNECTED!")
-                    callbacks?.onDisconnected(success)
-                })) {
-                Log.e(TAG, "disconnect failed")
-                callbacks?.onDisconnected(false)
-            }
-        }
-
-        val runBeep = Runnable {
-            val service = GattUuids.PEBBLEBEE_FINDER_SERVICE.uuid
-            val characteristic = GattUuids.PEBBLEBEE_FINDER_CHARACTERISTIC1.uuid
-            val value = PLAY_JINGLE_COUNT_4
-            Log.i(TAG, "REQUESTING")
-            callbacks?.onRequesting()
-            if (!gattHandler.characteristicWrite(
-                    serviceUuid = service,
-                    characteristicUuid = characteristic,
-                    value = value,
-                    characteristicWriteType = GattHandler.CharacteristicWriteType.DefaultWithResponse,
-                    runAfterSuccess = Runnable {
-                        Log.i(TAG, "REQUEST SUCCESS!")
-                        callbacks?.onRequested(true)
-                        runDisconnect.accept(true)
-                    },
-                    runAfterFail = Runnable {
-                        Log.e(TAG, "REQUEST FAIL!")
-                        callbacks?.onRequested(false)
-                        runDisconnect.accept(false)
-                    }
-                )
-            ) {
-                Log.e(TAG, "characteristicWrite failed")
-                runDisconnect.accept(false)
-            }
-        }
-
-        if (gattHandler.isConnectingOrConnectedAndNotDisconnecting) {
-            runBeep.run()
-        } else {
-            Log.i(TAG, "CONNECTING")
-            callbacks?.onConnecting()
-            if (!gattHandler.connect(runAfterConnect = Runnable {
-                    Log.i(TAG, "CONNECT SUCCESS!")
-                    callbacks?.onConnected()
-                    runBeep.run()
-                }, runAfterFail = Runnable {
-                    Log.e(TAG, "CONNECT FAIL!")
-                    runDisconnect.accept(false)
-                })) {
-                Log.e(TAG, "connect failed")
-                runDisconnect.accept(false)
-            }
-        }
+        const val PEBBLEBEE_DEVICE_MODEL_NUMBER = Pebblebee.DeviceModelNumber.FINDER2_0
     }
 
-    class Parser : BleToolParser.AbstractParser(
+    private val featureBeep = Features.FeatureBeep(this, this)
+
+    override fun update(trigger: Trigger<*>): Boolean {
+        if (super.update(trigger)) {
+            return true
+        }
+
+        if (trigger is Triggers.TriggerBeepingAndFlashing) {
+            val isBeepingAndFlashing = trigger.value
+            featureBeep.isBeeping = isBeepingAndFlashing
+            //featureFlashing.isFlashing = isBeepingAndFlashing
+            return true
+        }
+
+        //...
+
+        return false
+    }
+
+    //
+    //region Parser
+    //
+
+    class Parser : BleToolParser.BleDeviceParser(
         TAG, "Finder2", Configuration()
-            .addDeviceAddressPrefixFilter(PebblebeeMacAddressPrefix.PEBBLEBEE_FINDER2)
-            .addDeviceName(PebblebeeDeviceCaseSensitiveName.FINDER)
+            .addDeviceAddressPrefixFilter(Pebblebee.MacAddressPrefix.PEBBLEBEE_FINDER2)
+            .addDeviceName(Pebblebee.DeviceCaseSensitiveName.FINDER)
             .addServiceUuid(GattUuids.PEBBLEBEE_FINDER_SERVICE)
     ) {
-
         @Suppress("SimplifyBooleanWithConstants", "PrivatePropertyName")
         private val LOG_IGNORED_MAC_ADDRESS = false && BuildConfig.DEBUG
 
@@ -122,6 +78,9 @@ object PebblebeeDeviceFinder2 {
         @Suppress("SimplifyBooleanWithConstants", "PrivatePropertyName")
         private val LOG_DATA_VERBOSE = true && BuildConfig.DEBUG
 
+        override val modelNumber: Int
+            get() = Pebblebee.DeviceModelNumber.FINDER2_0
+
         override fun parseScan(
             scanRecord: ScanRecord,
             bluetoothDevice: BluetoothDevice,
@@ -130,7 +89,6 @@ object PebblebeeDeviceFinder2 {
             manufacturerSpecificDataByteBuffer: ByteBuffer,
             triggers: MutableSet<Trigger<*>>
         ): Boolean {
-
             val methodName = "parseScan"
 
             val bluetoothDeviceAddress = bluetoothDevice.address
@@ -146,7 +104,7 @@ object PebblebeeDeviceFinder2 {
             }
 
             when (manufacturerId) {
-                PebblebeeManufacturerIds.PEBBLEBEE_FINDER2 -> {
+                Pebblebee.ManufacturerId.PEBBLEBEE_FINDER2 -> {
                     val bluetoothDeviceName = getDeviceNameOrScanRecordName(bluetoothDevice, scanRecord)
                     if (LOG_DATA_VERBOSE) {
                         log(Log.INFO, bluetoothDeviceAddress, methodName, "bluetoothDeviceName=${Utils.quote(bluetoothDeviceName)}")
@@ -170,9 +128,6 @@ object PebblebeeDeviceFinder2 {
                         return false
                     }
 
-                    //
-                    // Process as 2
-                    //
                     if (LOG_DATA) {
                         log(Log.INFO, bluetoothDeviceAddress, methodName, "DATA")
                     }
@@ -238,7 +193,7 @@ object PebblebeeDeviceFinder2 {
                         val actionDataButton = (actionData.toInt() and 3).toByte()
                         if (LOG_DATA_VERBOSE) {
                             //@formatter:off
-                            log(Log.ERROR, bluetoothDeviceAddress, methodName, "DATA actionSequence=${ActionSequence.toString(actionSequence)} (0x${Utils.toHexString(actionSequence, 1)}) (0b${Utils.toBitString(actionSequence, 4)})")
+                            log(Log.ERROR, bluetoothDeviceAddress, methodName, "DATA actionSequence=${Pebblebee.ActionSequence.toString(actionSequence)} (0x${Utils.toHexString(actionSequence, 1)}) (0b${Utils.toBitString(actionSequence, 4)})")
                             log(Log.ERROR, bluetoothDeviceAddress, methodName, "DATA actionData=$actionData (0x${Utils.toHexString(actionData, 1)}) (0b${Utils.toBitString(actionData, 4)})")
                             log(Log.ERROR, bluetoothDeviceAddress, methodName, "DATA actionDataBeepingAndFlashing=$actionDataBeepingAndFlashing (0x${Utils.toHexString(actionDataBeepingAndFlashing, 1)})")
                             //@formatter:on
@@ -262,10 +217,10 @@ object PebblebeeDeviceFinder2 {
                             //@formatter:on
                             when (actionDataButton) {
                                 //@formatter:off
-                                Actions.NONE -> log(Log.ERROR, bluetoothDeviceAddress, methodName, "DATA actionDataButton: NONE")
-                                Actions.CLICK_SHORT -> log(Log.ERROR, bluetoothDeviceAddress, methodName, "DATA actionDataButton: CLICK_SHORT")
-                                Actions.CLICK_LONG -> log(Log.ERROR, bluetoothDeviceAddress, methodName, "DATA actionDataButton: CLICK_LONG")
-                                Actions.CLICK_DOUBLE -> log(Log.ERROR, bluetoothDeviceAddress, methodName, "DATA actionDataButton: CLICK_DOUBLE")
+                                Pebblebee.Actions.NONE -> log(Log.ERROR, bluetoothDeviceAddress, methodName, "DATA actionDataButton: NONE")
+                                Pebblebee.Actions.CLICK_SHORT -> log(Log.ERROR, bluetoothDeviceAddress, methodName, "DATA actionDataButton: CLICK_SHORT")
+                                Pebblebee.Actions.CLICK_LONG -> log(Log.ERROR, bluetoothDeviceAddress, methodName, "DATA actionDataButton: CLICK_LONG")
+                                Pebblebee.Actions.CLICK_DOUBLE -> log(Log.ERROR, bluetoothDeviceAddress, methodName, "DATA actionDataButton: CLICK_DOUBLE")
                                 else -> log(Log.ERROR, bluetoothDeviceAddress, methodName, "DATA actionDataButton: Unknown")
                                 //@formatter:on
                             }
@@ -301,9 +256,9 @@ object PebblebeeDeviceFinder2 {
                             log(Log.INFO, bluetoothDeviceAddress, methodName, "DATA modelNumber=$modelNumber (0x${Utils.toHexString(modelNumber, 1)})")
                         }
                         triggers.add(Triggers.TriggerBeepingAndFlashing(actionDataBeepingAndFlashing.toInt() == 1))
-                        triggers.add(Triggers.TriggerShortClick(actionDataButton == Actions.CLICK_SHORT, actionSequence, actionCounter))
-                        triggers.add(Triggers.TriggerLongClick(actionDataButton == Actions.CLICK_LONG, actionSequence, actionCounter))
-                        triggers.add(Triggers.TriggerDoubleClick(actionDataButton == Actions.CLICK_DOUBLE, actionSequence, actionCounter))
+                        triggers.add(Triggers.TriggerShortClick(actionDataButton == Pebblebee.Actions.CLICK_SHORT, actionSequence, actionCounter))
+                        triggers.add(Triggers.TriggerLongClick(actionDataButton == Pebblebee.Actions.CLICK_LONG, actionSequence, actionCounter))
+                        triggers.add(Triggers.TriggerDoubleClick(actionDataButton == Pebblebee.Actions.CLICK_DOUBLE, actionSequence, actionCounter))
                         triggers.add(Triggers.TriggerTemperatureCelsius(temperatureCelsius))
                         triggers.add(Triggers.TriggerBatteryLevelMilliVolts(batteryMilliVolts))
                         triggers.add(Triggers.TriggerAdvertisementSpeed(actionDataAdvertisementSpeed))
@@ -349,7 +304,7 @@ object PebblebeeDeviceFinder2 {
                         log(Log.INFO, bluetoothDeviceAddress, methodName, "IBEACON -- END ----------")
                     }
                     when (uuid) {
-                        Regions.TRACKING_FINDER, Regions.TRACKING_STONE -> {
+                        Pebblebee.Regions.TRACKING_FINDER, Pebblebee.Regions.TRACKING_STONE -> {
                             if (LOG_REGION) {
                                 log(Log.INFO, bluetoothDeviceAddress, methodName, "IBEACON REGION TRACKING")
                             }
@@ -358,7 +313,7 @@ object PebblebeeDeviceFinder2 {
                             triggers.add(Triggers.TriggerMotion(false))
                             return true
                         }
-                        Regions.INTERRUPT -> {
+                        Pebblebee.Regions.INTERRUPT -> {
                             if (LOG_REGION) {
                                 log(Log.INFO, bluetoothDeviceAddress, methodName, "IBEACON REGION INTERRUPT")
                             }
@@ -393,4 +348,172 @@ object PebblebeeDeviceFinder2 {
             return false
         }
     }
+
+    //
+    //endregion Parser
+    //
+
+    //
+    //region IFeatureBeep
+    //
+
+    override fun addListener(listener: Features.IFeatureBeepListener) {
+        featureBeep.addListener(listener)
+    }
+
+    override fun removeListener(listener: Features.IFeatureBeepListener) {
+        featureBeep.removeListener(listener)
+    }
+
+    override val isBeeping: Boolean
+        get() = featureBeep.isBeeping
+    override val beepDurationMillis: Int
+        get() = BEEP_DURATION_MILLIS
+
+    override fun requestBeep(on: Boolean, progress: RequestProgress): Boolean {
+        return if (on) requestBeep(progress) else stopBeep(progress)
+    }
+
+    @Suppress("unused", "PrivatePropertyName")
+    private val PLAY_JINGLE_COUNT_1 = byteArrayOf(0x01, 0x00)
+
+    @Suppress("unused", "PrivatePropertyName")
+    private val PLAY_JINGLE_COUNT_2 = byteArrayOf(0x01, 0x00, 0x00)
+
+    @Suppress("unused", "PrivatePropertyName")
+    private val PLAY_JINGLE_COUNT_3 = byteArrayOf(0x01, 0x00, 0x00, 0x00)
+
+    @Suppress("unused", "PrivatePropertyName")
+    private val PLAY_JINGLE_COUNT_4 = byteArrayOf(0x80.toByte(), 0x01)
+
+    @Suppress("MemberVisibilityCanBePrivate")
+    fun requestBeep(callbacks: RequestProgress? = null): Boolean {
+        val runDisconnect = Consumer<Boolean> { success ->
+            Log.i(TAG, "DISCONNECTING")
+            callbacks?.onDisconnecting()
+            if (!gattHandler.disconnect(runAfterDisconnect = Runnable {
+                    Log.i(TAG, "DISCONNECTED!")
+                    callbacks?.onDisconnected(success)
+                })) {
+                Log.e(TAG, "disconnect failed")
+                callbacks?.onDisconnected(false)
+            }
+        }
+
+        val runRequest = Runnable {
+            Log.i(TAG, "REQUESTING")
+            callbacks?.onRequesting()
+            if (!gattHandler.characteristicWrite(
+                    serviceUuid = GattUuids.PEBBLEBEE_FINDER_SERVICE.uuid,
+                    characteristicUuid = GattUuids.PEBBLEBEE_FINDER_CHARACTERISTIC1.uuid,
+                    value = PLAY_JINGLE_COUNT_4,
+                    characteristicWriteType = GattHandler.CharacteristicWriteType.DefaultWithResponse,
+                    runAfterSuccess = Runnable {
+                        Log.i(TAG, "REQUEST SUCCESS!")
+                        callbacks?.onRequested(true)
+                        runDisconnect.accept(true)
+                    },
+                    runAfterFail = Runnable {
+                        Log.e(TAG, "REQUEST FAIL!")
+                        callbacks?.onRequested(false)
+                        runDisconnect.accept(false)
+                    }
+                )
+            ) {
+                Log.e(TAG, "characteristicWrite failed")
+                runDisconnect.accept(false)
+            }
+        }
+
+        if (gattHandler.isConnectingOrConnectedAndNotDisconnecting) {
+            runRequest.run()
+        } else {
+            Log.i(TAG, "CONNECTING")
+            callbacks?.onConnecting()
+            if (!gattHandler.connect(runAfterConnect = Runnable {
+                    Log.i(TAG, "CONNECT SUCCESS!")
+                    callbacks?.onConnected()
+                    runRequest.run()
+                }, runAfterFail = Runnable {
+                    Log.e(TAG, "CONNECT FAIL!")
+                    runDisconnect.accept(false)
+                })) {
+                Log.e(TAG, "connect failed")
+                runDisconnect.accept(false)
+            }
+        }
+        return true
+    }
+
+    @Suppress("unused", "PrivatePropertyName")
+    private val STOP_BEEP_AND_FLASH = byteArrayOf(0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01)
+
+    @Suppress("unused", "PrivatePropertyName")
+    private val STOP_FLASH = byteArrayOf(0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04)
+
+    @Suppress("unused", "PrivatePropertyName")
+    private val STOP_BEEP = byteArrayOf(0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10)
+
+    @Suppress("MemberVisibilityCanBePrivate")
+    fun stopBeep(callbacks: RequestProgress? = null): Boolean {
+        val runDisconnect = Consumer<Boolean> { success ->
+            Log.i(TAG, "DISCONNECTING")
+            callbacks?.onDisconnecting()
+            if (!gattHandler.disconnect(runAfterDisconnect = Runnable {
+                    Log.i(TAG, "DISCONNECTED!")
+                    callbacks?.onDisconnected(success)
+                })) {
+                Log.e(TAG, "disconnect failed")
+                callbacks?.onDisconnected(false)
+            }
+        }
+
+        val runRequest = Runnable {
+            Log.i(TAG, "REQUESTING")
+            callbacks?.onRequesting()
+            if (!gattHandler.characteristicWrite(
+                    serviceUuid = GattUuids.PEBBLEBEE_FINDER_SERVICE.uuid,
+                    characteristicUuid = GattUuids.PEBBLEBEE_FINDER_CHARACTERISTIC1.uuid,
+                    value = STOP_BEEP_AND_FLASH,
+                    characteristicWriteType = GattHandler.CharacteristicWriteType.DefaultWithResponse,
+                    runAfterSuccess = Runnable {
+                        Log.i(TAG, "REQUEST SUCCESS!")
+                        callbacks?.onRequested(true)
+                        runDisconnect.accept(true)
+                    },
+                    runAfterFail = Runnable {
+                        Log.e(TAG, "REQUEST FAIL!")
+                        callbacks?.onRequested(false)
+                        runDisconnect.accept(false)
+                    }
+                )
+            ) {
+                Log.e(TAG, "characteristicWrite failed")
+                runDisconnect.accept(false)
+            }
+        }
+
+        if (gattHandler.isConnectingOrConnectedAndNotDisconnecting) {
+            runRequest.run()
+        } else {
+            Log.i(TAG, "CONNECTING")
+            callbacks?.onConnecting()
+            if (!gattHandler.connect(runAfterConnect = Runnable {
+                    Log.i(TAG, "CONNECT SUCCESS!")
+                    callbacks?.onConnected()
+                    runRequest.run()
+                }, runAfterFail = Runnable {
+                    Log.e(TAG, "CONNECT FAIL!")
+                    runDisconnect.accept(false)
+                })) {
+                Log.e(TAG, "connect failed")
+                runDisconnect.accept(false)
+            }
+        }
+        return true
+    }
+
+    //
+    //endregion IFeatureBeep
+    //
 }

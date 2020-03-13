@@ -1,14 +1,14 @@
-package com.github.paulpv.androidbletool.devices
+package com.github.paulpv.androidbletool.devices.pebblebee
 
 import com.github.paulpv.androidbletool.BluetoothUtils
 import com.github.paulpv.androidbletool.utils.Utils
 import java.util.*
 
-class PebblebeeDevices {
+object Pebblebee {
     /**
      * NOTE that these are the reverse of [PebblebeeMacAddressPrefix]
      */
-    interface PebblebeeManufacturerIds {
+    interface ManufacturerId {
         companion object {
             const val PEBBLEBEE_HONEY_DRAGON_HORNET: Int = 0x0A0E
             const val PETHUB_SIGNAL: Int = 0x0B0E
@@ -38,7 +38,7 @@ class PebblebeeDevices {
     /**
      * NOTE that these are the reverse of [PebblebeeManufacturerIds]
      */
-    interface PebblebeeMacAddressPrefix {
+    interface MacAddressPrefix {
         companion object {
             const val PEBBLEBEE_HONEY_DRAGON_HORNET: Int = 0x0E0A
             const val PEBBLEBEE_HONEY_DRAGON_HORNET_STRING = "0e0a"
@@ -59,7 +59,7 @@ class PebblebeeDevices {
         }
     }
 
-    internal interface PebblebeeDeviceCaseSensitiveName {
+    internal interface DeviceCaseSensitiveName {
         companion object {
             const val PEBBLEBEE_HONEY = "PebbleBee" // Honey
             const val PEBBLEBEE_DRAGON_HORNET = "Pebblebee" // Dragon/Hornet
@@ -90,7 +90,7 @@ class PebblebeeDevices {
         }
     }
 
-    object PebblebeeDeviceModelNumbers {
+    object DeviceModelNumber {
         fun getDefaultModelNumber(deviceMacAddress: String): Int {
             var deviceMacAddress = deviceMacAddress
             var defaultModelNumber = HONEY_0
@@ -99,11 +99,11 @@ class PebblebeeDevices {
             }
             deviceMacAddress = BluetoothUtils.macAddressStringToStrippedLowerCaseString(deviceMacAddress)
             when (deviceMacAddress.substring(0, 3)) {
-                PebblebeeMacAddressPrefix.PEBBLEBEE_FINDER1_STRING -> defaultModelNumber = FINDER1_0
-                PebblebeeMacAddressPrefix.PEBBLEBEE_FINDER2_STRING -> defaultModelNumber = FINDER2_0
-                PebblebeeMacAddressPrefix.PEBBLEBEE_BUZZER1_STRING -> defaultModelNumber = BUZZER1_0
-                PebblebeeMacAddressPrefix.PEBBLEBEE_BUZZER2_STRING -> defaultModelNumber = BUZZER2_0
-                PebblebeeMacAddressPrefix.PEBBLEBEE_CARD_STRING -> defaultModelNumber = CARD_0
+                MacAddressPrefix.PEBBLEBEE_FINDER1_STRING -> defaultModelNumber = FINDER1_0
+                MacAddressPrefix.PEBBLEBEE_FINDER2_STRING -> defaultModelNumber = FINDER2_0
+                MacAddressPrefix.PEBBLEBEE_BUZZER1_STRING -> defaultModelNumber = BUZZER1_0
+                MacAddressPrefix.PEBBLEBEE_BUZZER2_STRING -> defaultModelNumber = BUZZER2_0
+                MacAddressPrefix.PEBBLEBEE_CARD_STRING -> defaultModelNumber = CARD_0
             }
             return defaultModelNumber
         }
@@ -222,7 +222,7 @@ class PebblebeeDevices {
             }
         }
     }
-    
+
     //
     //
     //

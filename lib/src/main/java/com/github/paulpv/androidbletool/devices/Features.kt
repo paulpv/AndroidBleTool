@@ -1,6 +1,7 @@
 package com.github.paulpv.androidbletool.devices
 
 import android.util.Log
+import com.github.paulpv.androidbletool.BleDevice
 import com.github.paulpv.androidbletool.BuildConfig
 import com.github.paulpv.androidbletool.math.LowPassFilter
 import com.github.paulpv.androidbletool.utils.ReflectionUtils.instanceName
@@ -10,17 +11,20 @@ object Features {
     interface IFeatureListener
 
     interface IFeature {
-        val device: PebblebeeDevice
+        val device: BleDevice
     }
 
-    abstract class Feature(override val device: PebblebeeDevice) : IFeature {
+    abstract class Feature(override val device: BleDevice) : IFeature {
         companion object {
-            fun toString(feature: Feature, close: Boolean = true): String {
+            fun toString(feature: Feature, suffix: String? = null): String {
                 // device.toString() calls feature.toString() for each feature; prevent recursion...
                 val device = feature.device
-                val deviceString = "${instanceName(device)}{macAddressString=${device.macAddressString}, ...}"
-                val s = "${instanceName(this)}{device=${deviceString}"
-                return if (close) "$s, ...}" else s
+                val deviceString = "${instanceName(device)}{ macAddressString=${device.macAddressString}, ... }"
+                var s = "${instanceName(feature)}{ device=${deviceString}"
+                if (suffix != null) {
+                    s += suffix
+                }
+                return "$s }"
 
             }
         }
@@ -29,12 +33,14 @@ object Features {
             return toString(this)
         }
 
-        init {
-            reset()
-        }
-
         abstract fun reset()
+
+        protected abstract fun onFeatureChanged()
     }
+
+    //
+    //region FeatureSignalLevelRssi
+    //
 
     interface IFeatureSignalLevelRssiListener : IFeatureListener {
         fun onFeatureChanged(feature: IFeatureSignalLevelRssi): Boolean
@@ -47,7 +53,7 @@ object Features {
         val signalLevelRssiSmoothed: Int
     }
 
-    class FeatureSignalLevelRssi(device: PebblebeeDevice) : Feature(device), IFeatureSignalLevelRssi {
+    class FeatureSignalLevelRssi(device: BleDevice) : Feature(device), IFeatureSignalLevelRssi {
         companion object {
             private val TAG = TAG(FeatureSignalLevelRssi::class.java)
 
@@ -62,17 +68,23 @@ object Features {
 
         private val listeners = mutableSetOf<IFeatureSignalLevelRssiListener>()
 
-        private var signalLevelRssiRealtimeCurrent = 0
-        private var signalLevelRssiRealtimePrevious = 0
-        private var signalLevelRssiSmoothedCurrent = 0
-        private var signalLevelRssiSmoothedPrevious = 0
+        private var signalLevelRssiRealtimeCurrent = SIGNAL_LEVEL_RSSI_UNDEFINED
+        private var signalLevelRssiRealtimePrevious = SIGNAL_LEVEL_RSSI_UNDEFINED
+        private var signalLevelRssiSmoothedCurrent = SIGNAL_LEVEL_RSSI_UNDEFINED
+        private var signalLevelRssiSmoothedPrevious = SIGNAL_LEVEL_RSSI_UNDEFINED
 
         override fun toString(): String {
-            return toString(this, close = false) +
-                    ", signalLevelRssiRealtimeCurrent=$signalLevelRssiRealtimeCurrent" +
-                    ", signalLevelRssiRealtimePrevious=$signalLevelRssiRealtimePrevious" +
-                    ", signalLevelRssiSmoothedCurrent=$signalLevelRssiSmoothedCurrent" +
-                    ", signalLevelRssiSmoothedPrevious=$signalLevelRssiSmoothedPrevious}"
+            return toString(
+                this,
+                ", signalLevelRssiRealtimeCurrent=$signalLevelRssiRealtimeCurrent" +
+                        ", signalLevelRssiRealtimePrevious=$signalLevelRssiRealtimePrevious" +
+                        ", signalLevelRssiSmoothedCurrent=$signalLevelRssiSmoothedCurrent" +
+                        ", signalLevelRssiSmoothedPrevious=$signalLevelRssiSmoothedPrevious}"
+            )
+        }
+
+        init {
+            reset()
         }
 
         override fun addListener(listener: IFeatureSignalLevelRssiListener) {
@@ -83,7 +95,7 @@ object Features {
             synchronized(listeners) { listeners.remove(listener) }
         }
 
-        fun onFeatureChanged() {
+        override fun onFeatureChanged() {
             synchronized(listeners) {
                 for (listener in listeners) {
                     if (listener.onFeatureChanged(this)) {
@@ -97,13 +109,6 @@ object Features {
             setSignalLevelRssi(SIGNAL_LEVEL_RSSI_UNDEFINED)
             signalLevelRssiRealtimePrevious = SIGNAL_LEVEL_RSSI_UNDEFINED
             signalLevelRssiSmoothedPrevious = SIGNAL_LEVEL_RSSI_UNDEFINED
-        }
-
-        fun copy(other: FeatureSignalLevelRssi) {
-            signalLevelRssiRealtimeCurrent = other.signalLevelRssiRealtimeCurrent
-            signalLevelRssiRealtimePrevious = other.signalLevelRssiRealtimePrevious
-            signalLevelRssiSmoothedCurrent = other.signalLevelRssiSmoothedCurrent
-            signalLevelRssiSmoothedPrevious = other.signalLevelRssiSmoothedPrevious
         }
 
         fun setSignalLevelRssi(rssi: Int): Boolean {
@@ -123,6 +128,7 @@ object Features {
             }
             var changed = signalLevelRssiRealtimePrevious != rssi
             signalLevelRssiRealtimeCurrent = rssi
+            @Suppress("ConstantConditionIf")
             if (VERBOSE_LOG) {
                 Log.e(TAG, "setSignalLevelRssi: signalLevelRssiRealtimeCurrent=$signalLevelRssiRealtimeCurrent")
             }
@@ -132,7 +138,8 @@ object Features {
                 }
             }
             signalLevelRssiSmoothedPrevious = signalLevelRssiSmoothedCurrent
-            if (FeatureSignalLevelRssi.VERBOSE_LOG) {
+            @Suppress("ConstantConditionIf")
+            if (VERBOSE_LOG) {
                 Log.e(TAG, "setSignalLevelRssi: signalLevelRssiSmoothedPrevious=$signalLevelRssiSmoothedPrevious")
             }
             changed = if (false && BuildConfig.DEBUG) {
@@ -142,6 +149,7 @@ object Features {
                 signalLevelRssiSmoothedPrevious != rssi
             }
             signalLevelRssiSmoothedCurrent = rssi
+            @Suppress("ConstantConditionIf")
             if (VERBOSE_LOG) {
                 Log.e(TAG, "setSignalLevelRssi: signalLevelRssiSmoothedCurrent=$signalLevelRssiSmoothedCurrent")
             }
@@ -167,4 +175,85 @@ object Features {
                 return signalLevelRssiSmoothedCurrent
             }
     }
+
+    //
+    //endregion FeatureSignalLevelRssi
+    //
+
+    //
+    //region FeatureBeep
+    //
+
+    interface IFeatureBeepListener : IFeatureListener {
+        fun onFeatureChanged(feature: IFeatureBeep): Boolean
+    }
+
+    interface IFeatureBeepConfiguration {
+        val beepDurationMillis: Int
+        fun requestBeep(on: Boolean, progress: BleDevice.RequestProgress): Boolean
+    }
+
+    interface IFeatureBeep : IFeature, IFeatureBeepConfiguration {
+        fun addListener(listener: IFeatureBeepListener)
+        fun removeListener(listener: IFeatureBeepListener)
+        val isBeeping: Boolean
+    }
+
+    class FeatureBeep(device: BleDevice, private val configuration: IFeatureBeepConfiguration) : Feature(device), IFeatureBeep {
+        companion object {
+            @Suppress("unused")
+            private val TAG = TAG(FeatureBeep::class.java)
+        }
+
+        private val listeners = mutableSetOf<IFeatureBeepListener>()
+
+        override fun toString(): String {
+            return toString(this, ", isBeeping=$isBeeping")
+        }
+
+        init {
+            reset()
+        }
+
+        override fun addListener(listener: IFeatureBeepListener) {
+            synchronized(listeners) { listeners.add(listener) }
+        }
+
+        override fun removeListener(listener: IFeatureBeepListener) {
+            synchronized(listeners) { listeners.remove(listener) }
+        }
+
+        override fun onFeatureChanged() {
+            synchronized(listeners) {
+                for (listener in listeners) {
+                    if (listener.onFeatureChanged(this)) {
+                        break
+                    }
+                }
+            }
+        }
+
+        override fun reset() {
+            isBeeping = false
+        }
+
+        override var isBeeping: Boolean = false
+            set(value) {
+                if (isBeeping != value) {
+                    field = value
+                    onFeatureChanged()
+                }
+            }
+
+        override val beepDurationMillis: Int
+            get() = configuration.beepDurationMillis
+
+        override fun requestBeep(on: Boolean, progress: BleDevice.RequestProgress): Boolean {
+            return configuration.requestBeep(on, progress)
+        }
+    }
+
+    //
+    //endregion FeatureBeep
+    //
 }
