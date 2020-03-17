@@ -7,21 +7,40 @@ object Triggers {
         @Suppress("MemberVisibilityCanBePrivate") val isImmediate: Boolean,
         val value: T
     ) {
+        companion object {
+            fun toString(trigger: Trigger<*>, value: String? = null, suffix: String? = null): String {
+                var s = "${instanceName(this)}{ value="
+                if (value != null) {
+                    s += value
+                } else {
+                    s += "${trigger.value}"
+                }
+                s += ", isImmediate=${trigger.isImmediate}, isChanged=${trigger.isChanged}"
+                if (suffix != null) {
+                    s += suffix
+                }
+                return "$s }"
+            }
+        }
+
         override fun toString(): String {
-            return "${instanceName(this)}{value=$value, isImmediate=$isImmediate, isChanged=$isChanged}"
+            return toString(this)
         }
 
         var isChanged = false
 
+        /*
         @Suppress("MemberVisibilityCanBePrivate")
         fun setIsChanged(isChanged: Boolean): Boolean {
             this.isChanged = isChanged
             return getIsChanged()
         }
 
+        @Suppress("MemberVisibilityCanBePrivate")
         fun getIsChanged(): Boolean {
             return isChanged
         }
+        */
     }
 
     class TriggerAdvertisementSpeed(value: Byte) : Trigger<Byte>(true, value) {
@@ -39,17 +58,23 @@ object Triggers {
         }
 
         override fun toString(): String {
-            return "${instanceName(this)}{value=${AdvertisementSpeed.toString(value)}, isImmediate=$isImmediate, isChanged=$isChanged}"
+            return toString(this, value = AdvertisementSpeed.toString(value))
         }
     }
 
     class TriggerBeepingAndFlashing(isBeepingAndFlashing: Boolean) : Trigger<Boolean>(true, isBeepingAndFlashing)
 
-    class TriggerShortClick(isShortClicked: Boolean, val sequence: Byte = -1, val counter: Byte = -1) : Trigger<Boolean>(true, isShortClicked)
+    abstract class TriggerClick(isClicked: Boolean, val sequence: Byte = -1, val counter: Byte = -1) : Trigger<Boolean>(true, isClicked) {
+        override fun toString(): String {
+            return toString(this, suffix = ", sequence=$sequence, counter=$counter")
+        }
+    }
 
-    class TriggerLongClick(isLongClicked: Boolean, val sequence: Byte = -1, val counter: Byte = -1) : Trigger<Boolean>(true, isLongClicked)
+    class TriggerShortClick(isShortClicked: Boolean, sequence: Byte = -1, counter: Byte = -1) : TriggerClick(isShortClicked, sequence, counter)
 
-    class TriggerDoubleClick(isDoubleClick: Boolean, val sequence: Byte = -1, val counter: Byte = -1) : Trigger<Boolean>(true, isDoubleClick)
+    class TriggerLongClick(isLongClicked: Boolean, sequence: Byte = -1, counter: Byte = -1) : TriggerClick(isLongClicked, sequence, counter)
+
+    class TriggerDoubleClick(isDoubleClick: Boolean, sequence: Byte = -1, counter: Byte = -1) : TriggerClick(isDoubleClick, sequence, counter)
 
     class TriggerTemperatureCelsius(celsius: Short) : Trigger<Short>(false, celsius)
 

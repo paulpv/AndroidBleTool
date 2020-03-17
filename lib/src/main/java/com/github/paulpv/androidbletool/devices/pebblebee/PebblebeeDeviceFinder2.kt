@@ -24,27 +24,50 @@ import java.util.*
 
 class PebblebeeDeviceFinder2(gattHandler: GattHandler) :
     PebblebeeDevice("Finder2", PEBBLEBEE_DEVICE_MODEL_NUMBER, gattHandler),
-    Features.IFeatureBeep {
+    Features.IFeatureShortClick,
+    Features.IFeatureBeep,
+    Features.IFeatureFlash {
 
     companion object {
         private val TAG = TAG(PebblebeeDeviceFinder2::class.java)
 
-        const val BEEP_DURATION_MILLIS = 26 * 1000
+        const val CLICK_TIMEOUT_MILLIS: Long = 8800
+
+        const val BEEP_AND_FLASH_DURATION_MILLIS = 26 * 1000
 
         const val PEBBLEBEE_DEVICE_MODEL_NUMBER = Pebblebee.DeviceModelNumber.FINDER2_0
     }
 
+    interface IFinder2Listener : IPebblebeeDeviceListener, Features.IFeatureBeepListener
+
+    private val featureShortClick = Features.FeatureShortClick(this, handler, CLICK_TIMEOUT_MILLIS)
     private val featureBeep = Features.FeatureBeep(this, this)
+    private val featureFlash = Features.FeatureFlash(this, this)
+
+    fun addListener(listener: IFinder2Listener) {
+        addListener(listener as IPebblebeeDeviceListener)
+        addListener(listener as Features.IFeatureBeepListener)
+    }
+
+    fun removeListener(listener: IFinder2Listener) {
+        removeListener(listener as IPebblebeeDeviceListener)
+        removeListener(listener as Features.IFeatureBeepListener)
+    }
 
     override fun update(trigger: Trigger<*>): Boolean {
         if (super.update(trigger)) {
             return true
         }
 
+        if (trigger is Triggers.TriggerShortClick) {
+            featureShortClick.setIsShortClicked(trigger)
+            return true
+        }
+
         if (trigger is Triggers.TriggerBeepingAndFlashing) {
             val isBeepingAndFlashing = trigger.value
             featureBeep.isBeeping = isBeepingAndFlashing
-            //featureFlashing.isFlashing = isBeepingAndFlashing
+            featureFlash.isFlashing = isBeepingAndFlashing
             return true
         }
 
@@ -73,10 +96,10 @@ class PebblebeeDeviceFinder2(gattHandler: GattHandler) :
         private val LOG_REGION = false && BuildConfig.DEBUG
 
         @Suppress("SimplifyBooleanWithConstants", "PrivatePropertyName")
-        private val LOG_DATA = true && BuildConfig.DEBUG
+        private val LOG_DATA = false && BuildConfig.DEBUG
 
         @Suppress("SimplifyBooleanWithConstants", "PrivatePropertyName")
-        private val LOG_DATA_VERBOSE = true && BuildConfig.DEBUG
+        private val LOG_DATA_VERBOSE = false && BuildConfig.DEBUG
 
         override val modelNumber: Int
             get() = Pebblebee.DeviceModelNumber.FINDER2_0
@@ -354,6 +377,25 @@ class PebblebeeDeviceFinder2(gattHandler: GattHandler) :
     //
 
     //
+    //region IFeatureShortClick
+    //
+
+    override fun addListener(listener: Features.IFeatureShortClickListener) {
+        featureShortClick.addListener(listener)
+    }
+
+    override fun removeListener(listener: Features.IFeatureShortClickListener) {
+        featureShortClick.removeListener(listener)
+    }
+
+    override val isShortClicked: Boolean
+        get() = featureShortClick.isShortClicked
+
+    //
+    //endregion IFeatureShortClick
+    //
+
+    //
     //region IFeatureBeep
     //
 
@@ -368,7 +410,7 @@ class PebblebeeDeviceFinder2(gattHandler: GattHandler) :
     override val isBeeping: Boolean
         get() = featureBeep.isBeeping
     override val beepDurationMillis: Int
-        get() = BEEP_DURATION_MILLIS
+        get() = BEEP_AND_FLASH_DURATION_MILLIS
 
     override fun requestBeep(on: Boolean, progress: RequestProgress): Boolean {
         return if (on) requestBeep(progress) else stopBeep(progress)
@@ -515,5 +557,31 @@ class PebblebeeDeviceFinder2(gattHandler: GattHandler) :
 
     //
     //endregion IFeatureBeep
+    //
+
+    //
+    //region IFeatureFlash
+    //
+
+    override fun addListener(listener: Features.IFeatureFlashListener) {
+        featureFlash.addListener(listener)
+    }
+
+    override fun removeListener(listener: Features.IFeatureFlashListener) {
+        featureFlash.removeListener(listener)
+    }
+
+    override val isFlashing: Boolean
+        get() = featureFlash.isFlashing
+    override val flashDurationMillis: Int
+        get() = BEEP_AND_FLASH_DURATION_MILLIS
+
+    override fun requestFlash(on: Boolean, progress: RequestProgress): Boolean {
+        //...
+        return false
+    }
+
+    //
+    //endregion IFeatureFlash
     //
 }

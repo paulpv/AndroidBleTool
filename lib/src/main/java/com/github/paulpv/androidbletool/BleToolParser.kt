@@ -9,7 +9,6 @@ import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseAr
 import com.github.paulpv.androidbletool.devices.Triggers.Trigger
 import com.github.paulpv.androidbletool.devices.Triggers.TriggerSignalLevelRssi
 import com.github.paulpv.androidbletool.devices.pebblebee.PebblebeeDevice
-import com.github.paulpv.androidbletool.devices.pebblebee.PebblebeeDeviceFinder2
 import com.github.paulpv.androidbletool.gatt.GattUuid
 import com.github.paulpv.androidbletool.logging.MyLog
 import com.github.paulpv.androidbletool.utils.RuntimeUtils
@@ -24,6 +23,8 @@ class BleToolParser(
 ) {
     companion object {
         private val TAG = TAG(BleToolParser::class.java)
+
+        private val LOG_PARSER = false && BuildConfig.DEBUG
 
         /**
          * @return the first 4 characters of the macAddress
@@ -193,22 +194,22 @@ class BleToolParser(
             parser = null
         }
         if (parser == null) {
-            if (true && BuildConfig.DEBUG) {
+            if (LOG_PARSER) {
                 Log.v(TAG, "parseScan: no parser recognized the scanned device; ignoring")
             }
             return null
         }
 
-        // Always ensure rssi trigger
+        // We have a parser; Always ensure rssi trigger
         triggers.add(TriggerSignalLevelRssi(scanResult.rssi))
 
-        if (true && BuildConfig.DEBUG) {
+        if (LOG_PARSER) {
             Log.v(TAG, "parseScan: parser=$parser")
             Log.v(TAG, "parseScan: triggers(" + triggers.size + ")=$triggers")
         }
 
         val device = deviceFactory.getDevice(bluetoothDevice, parser, triggers)
-        if (true && BuildConfig.DEBUG) {
+        if (LOG_PARSER) {
             Log.v(TAG, "parseScan: device=$device")
         }
 
@@ -241,10 +242,11 @@ class BleToolParser(
 
             manufacturerSpecificDataByteBuffer.rewind()
 
+            @Suppress("CanBeVal")
             var logVerbose = false
-            @Suppress("SimplifyBooleanWithConstants")
-            if (true && BuildConfig.DEBUG) {
-                logVerbose = logVerbose or (parser is PebblebeeDeviceFinder2.Parser)
+            @Suppress("ControlFlowWithEmptyBody")
+            if (LOG_PARSER) {
+                //logVerbose = logVerbose or ((parser is PebblebeeDeviceFinder2.Parser))// and (manufacturerSpecificDataByteBuffer.limit() > 5))
             }
             if (logVerbose) {
                 Log.e(TAG, "$debugInfo: serviceUuids=$serviceUuids")

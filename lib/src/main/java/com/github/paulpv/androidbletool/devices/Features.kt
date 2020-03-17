@@ -4,8 +4,10 @@ import android.util.Log
 import com.github.paulpv.androidbletool.BleDevice
 import com.github.paulpv.androidbletool.BuildConfig
 import com.github.paulpv.androidbletool.math.LowPassFilter
+import com.github.paulpv.androidbletool.utils.MyHandler
 import com.github.paulpv.androidbletool.utils.ReflectionUtils.instanceName
 import com.github.paulpv.androidbletool.utils.Utils.TAG
+import java.util.*
 
 object Features {
     interface IFeatureListener
@@ -36,6 +38,36 @@ object Features {
         abstract fun reset()
 
         protected abstract fun onFeatureChanged()
+    }
+
+    abstract class TimeoutFeature internal constructor(
+        device: BleDevice,
+        private val TAG: String,
+        private val handler: MyHandler,
+        private val timeoutMillis: Long = DEFAULT_TIMEOUT_MILLIS
+    ) : Feature(device) {
+
+        companion object {
+            const val DEFAULT_TIMEOUT_MILLIS = 5500L
+        }
+
+        private var updateTimerStartMillis: Long = 0
+        private val timeoutRunnable = Runnable {
+            val elapsedMillis = System.currentTimeMillis() - updateTimerStartMillis
+            Log.w(TAG, " mTimeoutRunnable: TIMEOUT elapsedMillis=$elapsedMillis; reset(); this=$this")
+            reset()
+        }
+
+        fun timerStop() {
+            Log.w(TAG, "timerStop(); this=$this")
+            handler.removeCallbacks(timeoutRunnable)
+        }
+
+        fun timerStart() {
+            Log.w(TAG, "timerStart(); this=$this")
+            updateTimerStartMillis = System.currentTimeMillis()
+            handler.postDelayed(timeoutRunnable, timeoutMillis)
+        }
     }
 
     //
@@ -79,7 +111,8 @@ object Features {
                 ", signalLevelRssiRealtimeCurrent=$signalLevelRssiRealtimeCurrent" +
                         ", signalLevelRssiRealtimePrevious=$signalLevelRssiRealtimePrevious" +
                         ", signalLevelRssiSmoothedCurrent=$signalLevelRssiSmoothedCurrent" +
-                        ", signalLevelRssiSmoothedPrevious=$signalLevelRssiSmoothedPrevious}"
+                        ", signalLevelRssiSmoothedPrevious=$signalLevelRssiSmoothedPrevious" +
+                        ", listeners.size=${listeners.size}"
             )
         }
 
@@ -153,7 +186,7 @@ object Features {
             if (VERBOSE_LOG) {
                 Log.e(TAG, "setSignalLevelRssi: signalLevelRssiSmoothedCurrent=$signalLevelRssiSmoothedCurrent")
             }
-            trigger.setIsChanged(changed)
+            trigger.isChanged = changed
             if (changed) {
                 onFeatureChanged()
             }
@@ -200,15 +233,10 @@ object Features {
     }
 
     class FeatureBeep(device: BleDevice, private val configuration: IFeatureBeepConfiguration) : Feature(device), IFeatureBeep {
-        companion object {
-            @Suppress("unused")
-            private val TAG = TAG(FeatureBeep::class.java)
-        }
-
         private val listeners = mutableSetOf<IFeatureBeepListener>()
 
         override fun toString(): String {
-            return toString(this, ", isBeeping=$isBeeping")
+            return toString(this, ", isBeeping=$isBeeping, listeners.size=${listeners.size}")
         }
 
         init {
@@ -255,5 +283,179 @@ object Features {
 
     //
     //endregion FeatureBeep
+    //
+
+    //
+    //region FeatureFlash
+    //
+
+    //
+    //
+    //
+    interface IFeatureFlashListener : IFeatureListener {
+        fun onFeatureChanged(feature: IFeatureFlash): Boolean
+    }
+
+    interface IFeatureFlashConfiguration {
+        val flashDurationMillis: Int
+        fun requestFlash(on: Boolean, progress: BleDevice.RequestProgress): Boolean
+    }
+
+    interface IFeatureFlash : IFeature, IFeatureFlashConfiguration {
+        fun addListener(listener: IFeatureFlashListener)
+        fun removeListener(listener: IFeatureFlashListener)
+        val isFlashing: Boolean
+    }
+
+    class FeatureFlash(device: BleDevice, private val configuration: IFeatureFlashConfiguration) : Feature(device), IFeatureFlash {
+        private val listeners = mutableSetOf<IFeatureFlashListener>()
+
+        override fun toString(): String {
+            return toString(this, ", isFlashing=$isFlashing, listeners.size=${listeners.size}")
+        }
+
+        init {
+            reset()
+        }
+
+        override fun addListener(listener: IFeatureFlashListener) {
+            synchronized(listeners) { listeners.add(listener) }
+        }
+
+        override fun removeListener(listener: IFeatureFlashListener) {
+            synchronized(listeners) { listeners.remove(listener) }
+        }
+
+        override fun onFeatureChanged() {
+            synchronized(listeners) {
+                for (listener in listeners) {
+                    if (listener.onFeatureChanged(this)) {
+                        break
+                    }
+                }
+            }
+        }
+
+        override fun reset() {
+            isFlashing = false
+        }
+
+        override var isFlashing: Boolean = false
+            set(value) {
+                if (isFlashing != value) {
+                    field = value
+                    onFeatureChanged()
+                }
+            }
+
+        override val flashDurationMillis: Int
+            get() = configuration.flashDurationMillis
+
+        override fun requestFlash(on: Boolean, progress: BleDevice.RequestProgress): Boolean {
+            return configuration.requestFlash(on, progress)
+        }
+    }
+
+    //
+    //endregion FeatureFlash
+    //
+
+    //
+    //region FeatureShortClick
+    //
+
+    interface IFeatureShortClickListener : IFeatureListener {
+        fun onFeatureChanged(feature: IFeatureShortClick): Boolean
+    }
+
+    interface IFeatureShortClick : IFeature {
+        fun addListener(listener: IFeatureShortClickListener)
+        fun removeListener(listener: IFeatureShortClickListener)
+        val isShortClicked: Boolean
+    }
+
+    class FeatureShortClick(device: BleDevice, handler: MyHandler, timeoutMillis: Long) :
+        TimeoutFeature(device, TAG, handler, timeoutMillis),
+        IFeatureShortClick {
+        companion object {
+            private val TAG: String = TAG(FeatureShortClick::class.java)
+
+            private val LOG_VERBOSE = false && BuildConfig.DEBUG
+        }
+
+        private val listeners: MutableSet<IFeatureShortClickListener> = LinkedHashSet()
+
+        override var isShortClicked = false
+            private set
+
+        private var sequence: Byte = 0
+        private var counter: Byte = 0
+
+        override fun toString(): String {
+            return toString(this, "isShortClicked=$isShortClicked, sequence=$sequence, counter=$counter, listeners.size=${listeners.size}")
+        }
+
+        init {
+            reset()
+        }
+
+        override fun addListener(listener: IFeatureShortClickListener) {
+            synchronized(listeners) { listeners.add(listener) }
+        }
+
+        override fun removeListener(listener: IFeatureShortClickListener) {
+            synchronized(listeners) { listeners.remove(listener) }
+        }
+
+        override fun onFeatureChanged() {
+            synchronized(listeners) {
+                for (listener in listeners) {
+                    if (listener.onFeatureChanged(this)) {
+                        break
+                    }
+                }
+            }
+        }
+
+        override fun reset() {
+            setIsShortClicked(false)
+        }
+
+        fun setIsShortClicked(isShortClicked: Boolean): Boolean {
+            val triggerShortClick = Triggers.TriggerShortClick(isShortClicked)
+            return setIsShortClicked(triggerShortClick)
+        }
+
+        fun setIsShortClicked(trigger: Triggers.TriggerShortClick): Boolean {
+            if (LOG_VERBOSE) {
+                Log.e(TAG, "#CLICK setIsShortClicked this=$this")
+            }
+            val isShortClicked: Boolean = trigger.value
+            val sequence = trigger.sequence
+            val counter = trigger.counter
+
+            //boolean changed = mIsShortClicked != isShortClicked || mCounter != counter;// || mSequence != sequence;
+            val changed = this.isShortClicked != isShortClicked // || mSequence != sequence;
+            if (LOG_VERBOSE) {
+                Log.e(TAG, "#CLICK setIsShortClicked isShortClicked=$isShortClicked, sequence=$sequence, counter=$counter, changed=$changed")
+            }
+            trigger.isChanged = changed
+            this.isShortClicked = isShortClicked
+            this.sequence = sequence
+            this.counter = counter
+            if (changed) {
+                if (isShortClicked) {
+                    timerStart()
+                } else {
+                    timerStop()
+                }
+                onFeatureChanged()
+            }
+            return changed
+        }
+    }
+
+    //
+    //endregion FeatureShortClick
     //
 }

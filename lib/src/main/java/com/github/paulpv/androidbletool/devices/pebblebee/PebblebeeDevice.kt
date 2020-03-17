@@ -2,18 +2,19 @@ package com.github.paulpv.androidbletool.devices.pebblebee
 
 import android.util.Log
 import com.github.paulpv.androidbletool.BleDevice
+import com.github.paulpv.androidbletool.BuildConfig
 import com.github.paulpv.androidbletool.devices.Features
 import com.github.paulpv.androidbletool.devices.Triggers
 import com.github.paulpv.androidbletool.gatt.GattHandler
 
 open class PebblebeeDevice(
     protected val TAG: String,
-    val modelNumber: Int,
+    @Suppress("MemberVisibilityCanBePrivate") val modelNumber: Int,
     gattHandler: GattHandler
 ) : BleDevice(gattHandler),
     Features.IFeatureSignalLevelRssi {
     companion object {
-        const val VERBOSE_LOG = false
+        private val DEBUG_LOG_UPDATE = false && BuildConfig.DEBUG
     }
 
     interface IPebblebeeDeviceListener : Features.IFeatureSignalLevelRssiListener
@@ -94,7 +95,7 @@ open class PebblebeeDevice(
             while (it.hasNext()) {
                 val trigger = it.next()
                 @Suppress("ConstantConditionIf")
-                if (VERBOSE_LOG) {
+                if (DEBUG_LOG_UPDATE) {
                     Log.v(TAG, "$macAddressString update: trigger=$trigger")
                 }
                 update(trigger)
@@ -113,13 +114,13 @@ open class PebblebeeDevice(
                 if (changed || forcedChanged) {
                     if (trigger.isImmediate) {
                         @Suppress("ConstantConditionIf")
-                        if (VERBOSE_LOG) {
+                        if (DEBUG_LOG_UPDATE) {
                             Log.v(TAG, "$macAddressString update: trigger CHANGED and IMMEDIATE")
                         }
                         immediate = true
                     } else {
                         @Suppress("ConstantConditionIf")
-                        if (VERBOSE_LOG) {
+                        if (DEBUG_LOG_UPDATE) {
                             if (forcedChanged) {
                                 Log.v(TAG, "$macAddressString update: trigger *FORCED CHANGED*")
                             } else {
@@ -129,7 +130,7 @@ open class PebblebeeDevice(
                     }
                 } else {
                     @Suppress("ConstantConditionIf")
-                    if (VERBOSE_LOG) {
+                    if (DEBUG_LOG_UPDATE) {
                         Log.v(TAG, "$macAddressString update: trigger NOT CHANGED; removing")
                     }
                     it.remove()

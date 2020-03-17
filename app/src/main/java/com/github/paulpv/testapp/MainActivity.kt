@@ -16,8 +16,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.github.paulpv.androidbletool.BleDevice
 import com.github.paulpv.androidbletool.BleScanResult
 import com.github.paulpv.androidbletool.BleTool
-import com.github.paulpv.androidbletool.BleTool.BleToolObserver
-import com.github.paulpv.androidbletool.BleTool.DeviceScanObserver
+import com.github.paulpv.androidbletool.BleTool.BleToolScanObserver
+import com.github.paulpv.androidbletool.BleTool.BleToolDeviceScanObserver
 import com.github.paulpv.androidbletool.R
 import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
 import com.github.paulpv.androidbletool.devices.Features
@@ -29,7 +29,7 @@ import com.github.paulpv.testapp.adapter.DevicesAdapter
 import com.github.paulpv.testapp.adapter.SortBy
 import kotlinx.android.synthetic.main.activity_main.*
 
-class MainActivity : AppCompatActivity(), DeviceScanObserver, BleToolObserver {
+class MainActivity : AppCompatActivity(), BleToolDeviceScanObserver, BleToolScanObserver {
     companion object {
         private val TAG = TAG(MainActivity::class.java)
     }
@@ -46,7 +46,7 @@ class MainActivity : AppCompatActivity(), DeviceScanObserver, BleToolObserver {
         super.onCreate(savedInstanceState)
 
         val intent = intent
-        Log.i(TAG, "onCreate: intent=${Utils.toString(intent)}")
+        Log.v(TAG, "onCreate: intent=${Utils.toString(intent)}")
 
         bleTool = BleTool.getInstance(this)
 
@@ -63,7 +63,7 @@ class MainActivity : AppCompatActivity(), DeviceScanObserver, BleToolObserver {
         devicesAdapter!!.setEventListener(object : DevicesAdapter.EventListener<DeviceInfo> {
             override fun onItemSelected(item: DeviceInfo) {
                 val macAddress = item.macAddress
-                Log.e(TAG, "onItemSelected: Make $macAddress beep!!!")
+                Log.i(TAG, "onItemSelected: Make $macAddress beep!!!")
                 requestBeep(macAddress)
             }
         })
@@ -172,7 +172,7 @@ class MainActivity : AppCompatActivity(), DeviceScanObserver, BleToolObserver {
     }
 
     //
-    //endregion
+    //endregion Menu stuff...
     //
 
     override fun onScanStarted(bleTool: BleTool) {
@@ -201,18 +201,18 @@ class MainActivity : AppCompatActivity(), DeviceScanObserver, BleToolObserver {
     }
 
     override fun onDeviceAdded(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) {
-        Log.w(TAG, "  onDeviceAdded: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} item=${item}")
+        Log.i(TAG, "  onDeviceAdded: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} item=${item}")
         devicesAdapter!!.add(item)
         updateScanCount()
     }
 
     override fun onDeviceUpdated(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) {
-        Log.w(TAG, "onDeviceUpdated: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} item=${item}")
+        Log.v(TAG, "onDeviceUpdated: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} item=${item}")
         devicesAdapter!!.add(item)
     }
 
     override fun onDeviceRemoved(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) {
-        Log.w(TAG, "onDeviceRemoved: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} item=${item}")
+        Log.i(TAG, "onDeviceRemoved: persistentScanningElapsedMillis=${bleTool.persistentScanningElapsedMillis} item=${item}")
         devicesAdapter!!.remove(item)
         updateScanCount()
     }
@@ -225,32 +225,36 @@ class MainActivity : AppCompatActivity(), DeviceScanObserver, BleToolObserver {
         Log.i(TAG, "requestBeep($macAddress)")
         val bleDevice = bleTool!!.deviceFactory.getDevice(macAddress)
         if (bleDevice !is Features.IFeatureBeep) {
-            Log.e(TAG, "requestBeep: $bleDevice does not support IFeatureBeep")
+            Log.w(TAG, "requestBeep: $bleDevice does not support IFeatureBeep")
             return
         }
         bleDevice.requestBeep(true, object : BleDevice.RequestProgress {
             override fun onConnecting() {
-                Log.e(TAG, "CONNECTING")
+                Log.i(TAG, "CONNECTING")
             }
 
             override fun onConnected() {
-                Log.e(TAG, "CONNECTED")
+                Log.i(TAG, "CONNECTED")
             }
 
             override fun onRequesting() {
-                Log.e(TAG, "REQUESTING")
+                Log.i(TAG, "REQUESTING")
             }
 
             override fun onRequested(success: Boolean) {
-                Log.e(TAG, "REQUESTED success=$success")
+                Log.i(TAG, "REQUESTED success=$success")
             }
 
             override fun onDisconnecting() {
-                Log.e(TAG, "DISCONNECTING")
+                Log.i(TAG, "DISCONNECTING")
             }
 
             override fun onDisconnected(success: Boolean) {
-                Log.e(TAG, "DISCONNECTED success=$success")
+                if (success) {
+                    Log.i(TAG, "DISCONNECTED success=$success")
+                } else {
+                    Log.e(TAG, "DISCONNECTED success=$success")
+                }
             }
         })
     }

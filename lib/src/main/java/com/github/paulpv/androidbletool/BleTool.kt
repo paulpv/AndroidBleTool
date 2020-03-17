@@ -19,6 +19,7 @@ import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.github.paulpv.androidbletool.BluetoothUtils.callbackTypeToString
 import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
+import com.github.paulpv.androidbletool.devices.Features
 import com.github.paulpv.androidbletool.exceptions.BleScanException
 import com.github.paulpv.androidbletool.gatt.GattManager
 import com.github.paulpv.androidbletool.utils.ReflectionUtils
@@ -107,6 +108,8 @@ class BleTool(
         @Suppress("PropertyName")
         open val DEVICE_FACTORY: BleDeviceFactory<*>
             get() = BleDeviceFactory<BleDevice>()
+
+        open fun isAuthorized(device: BleDevice?): Boolean = true
     }
 
     //
@@ -134,12 +137,14 @@ class BleTool(
     //endregion DEBUG_DEVICE_ADDRESS_FILTER
     //
 
-    interface BleToolObserver {
+    interface BleToolObserver
+
+    interface BleToolScanObserver : BleToolObserver {
         fun onScanStarted(bleTool: BleTool)
         fun onScanStopped(bleTool: BleTool, error: Throwable?)
     }
 
-    interface DeviceScanObserver {
+    interface BleToolDeviceScanObserver : BleToolObserver {
         fun onDeviceAdded(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>)
         fun onDeviceUpdated(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>)
         fun onDeviceRemoved(bleTool: BleTool, item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>)
@@ -734,102 +739,93 @@ class BleTool(
     //
 
     private var currentActivity: Activity? = null
-    private val deviceScanObservers: MutableSet<DeviceScanObserver> = mutableSetOf()
-    private val bleToolObservers: MutableSet<BleToolObserver> = mutableSetOf()
+    private val bleToolDeviceScanObservers: MutableSet<BleToolDeviceScanObserver> = mutableSetOf()
+    private val bleToolScanObservers: MutableSet<BleToolScanObserver> = mutableSetOf()
 
     private val isForegrounded: Boolean
         get() = currentActivity != null
 
     private fun onActivityCreated(activity: Activity) {
-        Log.e(TAG, "onActivityCreated(activity=$activity)")
+        Log.v(TAG, "onActivityCreated(activity=$activity)")
         activityAdd(activity)
     }
 
     private fun onActivityStarted(activity: Activity) {
-        Log.e(TAG, "onActivityStarted(activity=$activity)")
+        Log.v(TAG, "onActivityStarted(activity=$activity)")
         activityAdd(activity)
     }
 
     private fun onActivityResumed(activity: Activity) {
-        Log.e(TAG, "onActivityResumed(activity=$activity)")
+        Log.v(TAG, "onActivityResumed(activity=$activity)")
         activityAdd(activity)
     }
 
     private fun onActivitySaveInstanceState(activity: Activity, outState: Bundle?) {
-        Log.e(TAG, "onActivitySaveInstanceState(activity=$activity, outState=$outState)")
-        //...
+        Log.v(TAG, "onActivitySaveInstanceState(activity=$activity, outState=$outState)")
     }
 
     private fun onActivityPaused(activity: Activity) {
-        Log.e(TAG, "onActivityPaused(activity=$activity)")
+        Log.v(TAG, "onActivityPaused(activity=$activity)")
         activityRemove(activity)
     }
 
     private fun onActivityStopped(activity: Activity) {
-        Log.e(TAG, "onActivityStopped(activity=$activity)")
+        Log.v(TAG, "onActivityStopped(activity=$activity)")
         activityRemove(activity)
     }
 
     private fun onActivityDestroyed(activity: Activity) {
-        Log.e(TAG, "onActivityDestroyed(activity=$activity)")
+        Log.v(TAG, "onActivityDestroyed(activity=$activity)")
         activityRemove(activity)
     }
 
     private fun activityAdd(activity: Activity) {
-        Log.e(TAG, "activityAdd(activity=$activity)")
+        Log.v(TAG, "activityAdd(activity=$activity)")
         currentActivity = activity
-        if (activity is DeviceScanObserver) {
-            attach(activity)
-        }
         if (activity is BleToolObserver) {
             attach(activity)
         }
     }
 
     private fun activityRemove(activity: Activity) {
-        Log.e(TAG, "activityRemove(activity=$activity)")
+        Log.v(TAG, "activityRemove(activity=$activity)")
         currentActivity = null
-        if (activity is DeviceScanObserver) {
-            detach(activity)
-        }
         if (activity is BleToolObserver) {
             detach(activity)
         }
     }
 
     @Suppress("MemberVisibilityCanBePrivate")
-    fun attach(observer: DeviceScanObserver) {
-        Log.v(TAG, "attach(observer=$observer)")
-        @Suppress("ControlFlowWithEmptyBody")
-        if (deviceScanObservers.add(observer)) {
-            //...
-        }
-    }
-
-    @Suppress("MemberVisibilityCanBePrivate")
-    fun detach(observer: DeviceScanObserver) {
-        Log.v(TAG, "detach(observer=$observer)")
-        @Suppress("ControlFlowWithEmptyBody")
-        if (deviceScanObservers.remove(observer)) {
-            //...
-        }
-    }
-
-    @Suppress("MemberVisibilityCanBePrivate")
     fun attach(observer: BleToolObserver) {
-        Log.v(TAG, "attach(observer=$observer)")
-        @Suppress("ControlFlowWithEmptyBody")
-        if (bleToolObservers.add(observer)) {
-            //...
+        Log.d(TAG, "attach(observer=$observer)")
+        if (observer is BleToolScanObserver) {
+            @Suppress("ControlFlowWithEmptyBody")
+            if (bleToolScanObservers.add(observer)) {
+                //...
+            }
+        }
+        if (observer is BleToolDeviceScanObserver) {
+            @Suppress("ControlFlowWithEmptyBody")
+            if (bleToolDeviceScanObservers.add(observer)) {
+                //...
+            }
         }
     }
 
     @Suppress("MemberVisibilityCanBePrivate")
     fun detach(observer: BleToolObserver) {
-        Log.v(TAG, "detach(observer=$observer)")
-        @Suppress("ControlFlowWithEmptyBody")
-        if (bleToolObservers.remove(observer)) {
-            //...
+        Log.d(TAG, "detach(observer=$observer)")
+        if (observer is BleToolScanObserver) {
+            @Suppress("ControlFlowWithEmptyBody")
+            if (bleToolScanObservers.remove(observer)) {
+                //...
+            }
+        }
+        if (observer is BleToolDeviceScanObserver) {
+            @Suppress("ControlFlowWithEmptyBody")
+            if (bleToolDeviceScanObservers.remove(observer)) {
+                //...
+            }
         }
     }
 
@@ -913,9 +909,9 @@ class BleTool(
             if (result == null) {
                 persistentScanningStartedMillis = SystemClock.uptimeMillis()
                 scanningNotificationUpdate()
-                bleToolObservers.forEach { it.onScanStarted(this) }
+                bleToolScanObservers.forEach { it.onScanStarted(this) }
             } else {
-                bleToolObservers.forEach { it.onScanStopped(this, result) }
+                bleToolScanObservers.forEach { it.onScanStopped(this, result) }
             }
         }
 
@@ -1102,7 +1098,7 @@ class BleTool(
         if (!isPersistentScanningEnabled) return
         persistentScanningReset()
         persistentScanningPause("persistentScanningStop", true)
-        bleToolObservers.forEach { it.onScanStopped(this, error) }
+        bleToolScanObservers.forEach { it.onScanStopped(this, error) }
     }
 
     //
@@ -1338,14 +1334,16 @@ class BleTool(
         // @formatter:off
         Log.i(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceAdded: ADDED! bleScanResult=$bleScanResult")
         // @formatter:on
-        parseScan(item)
-        deviceScanObservers.forEach { it.onDeviceAdded(this, item) }
+        val device = parser.parseScan(item)
+        Log.i(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceAdded: device=$device")
+        addListeners(device)
+        bleToolDeviceScanObservers.forEach { it.onDeviceAdded(this, item) }
     }
 
 
     private fun onDeviceUpdated(item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) {
         @Suppress("SimplifyBooleanWithConstants")
-        if (true && BuildConfig.DEBUG) {
+        if (false && BuildConfig.DEBUG) {
             val bleScanResult = item.value
             val scanResult = bleScanResult.scanResult
             val bleDevice = scanResult.device
@@ -1355,14 +1353,104 @@ class BleTool(
             Log.v(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceUpdated: UPDATED! ageMillis=${Utils.getTimeDurationFormattedString(ageMillis)}, bleScanResult=$bleScanResult")
             // @formatter:on
         }
-        parseScan(item)
+        parser.parseScan(item)
         recentlyNearbyDevicesUpdatedDebounce.add(item)
     }
 
-    private fun parseScan(item: ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>) {
-        val device = parser.parseScan(item)
-        //Log.e(TAG, "parseScan: device=$device")
+    //
+    //region device Feature listeners
+    //
+
+    fun isAuthorized(device: BleDevice?): Boolean {
+        return configuration.isAuthorized(device)
     }
+
+    private fun addListeners(device: BleDevice?) {
+        Log.v(TAG, "addListeners(device=$device)")
+        if (device is Features.IFeatureSignalLevelRssi) {
+            device.addListener(featureSignalLevelRssiListener)
+        }
+        if (device is Features.IFeatureShortClick) {
+            device.addListener(featureShortClickListener)
+            onFeatureShortClickChanged(device)
+        }
+        // TODO:(pv) FeatureLongClick, FeatureDoubleClick
+
+        if (!isAuthorized(device)) return
+
+        if (device is Features.IFeatureBeep) {
+            device.addListener(featureBeepListener)
+            onFeatureBeepChanged(device)
+        }
+        if (device is Features.IFeatureFlash) {
+            device.addListener(featureFlashListener)
+            onFeatureFlashChanged(device)
+        }
+        // TODO:(pv) Temperature, Battery, Motion, etc...
+    }
+
+    private fun removeListeners(device: BleDevice?) {
+        Log.v(TAG, "removeListeners(device=$device)")
+        if (device is Features.IFeatureSignalLevelRssi) {
+            device.removeListener(featureSignalLevelRssiListener)
+        }
+        if (device is Features.IFeatureShortClick) {
+            device.removeListener(featureShortClickListener)
+        }
+        if (device is Features.IFeatureBeep) {
+            device.removeListener(featureBeepListener)
+        }
+    }
+
+    private val featureSignalLevelRssiListener = object : Features.IFeatureSignalLevelRssiListener {
+        override fun onFeatureChanged(feature: Features.IFeatureSignalLevelRssi): Boolean {
+            return this@BleTool.onFeatureSignalLevelRssiChanged(feature)
+        }
+    }
+
+    fun onFeatureSignalLevelRssiChanged(feature: Features.IFeatureSignalLevelRssi): Boolean {
+        //Log.v(TAG, "onFeatureSignalLevelRssiChanged: RSSI CHANGED feature=$feature")
+        return false
+    }
+
+    private val featureBeepListener = object : Features.IFeatureBeepListener {
+        override fun onFeatureChanged(feature: Features.IFeatureBeep): Boolean {
+            return this@BleTool.onFeatureBeepChanged(feature)
+        }
+    }
+
+    fun onFeatureBeepChanged(feature: Features.IFeatureBeep): Boolean {
+        Log.i(TAG, "onFeatureBeepChanged: BEEP CHANGED feature=$feature")
+        return false
+    }
+
+    private val featureFlashListener = object : Features.IFeatureFlashListener {
+        override fun onFeatureChanged(feature: Features.IFeatureFlash): Boolean {
+            return this@BleTool.onFeatureFlashChanged(feature)
+        }
+    }
+
+    fun onFeatureFlashChanged(feature: Features.IFeatureFlash): Boolean {
+        Log.i(TAG, "onFeatureFlashChanged: FLASH CHANGED feature=$feature")
+        return false
+    }
+
+    private val featureShortClickListener = object : Features.IFeatureShortClickListener {
+        override fun onFeatureChanged(feature: Features.IFeatureShortClick): Boolean {
+            return this@BleTool.onFeatureShortClickChanged(feature)
+        }
+    }
+
+    private fun onFeatureShortClickChanged(feature: Features.IFeatureShortClick): Boolean {
+        Log.i(TAG, "onFeatureShortClickChanged: SHORT CLICK CHANGED feature=$feature")
+        if (feature.isShortClicked) {
+        }
+        return false
+    }
+
+    //
+    //endregion device Feature listeners
+    //
 
     private val recentlyNearbyDevicesUpdatedDebounce: MutableSet<ExpiringIterableLongSparseArray.ItemWrapper<BleScanResult>> = mutableSetOf()
 
@@ -1371,7 +1459,7 @@ class BleTool(
         val it = recentlyNearbyDevicesUpdatedDebounce.iterator()
         while (it.hasNext()) {
             val item = it.next()
-            deviceScanObservers.forEach { it.onDeviceUpdated(this, item) }
+            bleToolDeviceScanObservers.forEach { it.onDeviceUpdated(this, item) }
             it.remove()
         }
     }
@@ -1403,7 +1491,9 @@ class BleTool(
         // @formatter:off
         Log.i(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceRemoved: REMOVED! bleScanResult=$bleScanResult")
         // @formatter:on
+        val device = deviceFactory.getDevice(macAddressString)
+        removeListeners(device)
         recentlyNearbyDevicesUpdatedDebounce.remove(item)
-        deviceScanObservers.forEach { it.onDeviceRemoved(this, item) }
+        bleToolDeviceScanObservers.forEach { it.onDeviceRemoved(this, item) }
     }
 }

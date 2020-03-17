@@ -25,6 +25,10 @@ open class BleDeviceFactory<T : BleDevice> {
         gattManager.close()
     }
 
+    fun getDevice(bluetoothDevice: BluetoothDevice): T {
+        return getDevice(bluetoothDevice.address)
+    }
+
     open fun getDevice(bluetoothDevice: BluetoothDevice, parser: BleDeviceParser, triggers: Set<Triggers.Trigger<*>>): T {
         return getDevice(bluetoothDevice.address)
     }
