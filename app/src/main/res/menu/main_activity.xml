@@ -13,6 +13,12 @@
         tools:ignore="AlwaysShowAction"
         />
 
+    <item
+        android:id="@+id/action_clear"
+        android:title="@string/action_clear"
+        app:showAsAction="never"
+        />
+
     <group
         android:checkableBehavior="single"
         android:orderInCategory="200"
@@ -46,8 +52,9 @@
     </group>
 
     <item
-        android:id="@+id/action_clear"
-        android:title="@string/action_clear"
+        android:id="@+id/action_ringtone"
+        android:orderInCategory="300"
+        android:title="@string/select_ringtone"
         app:showAsAction="never"
         />
 

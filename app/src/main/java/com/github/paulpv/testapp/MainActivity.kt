@@ -1,6 +1,7 @@
 package com.github.paulpv.testapp
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
@@ -16,8 +17,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.github.paulpv.androidbletool.BleDevice
 import com.github.paulpv.androidbletool.BleScanResult
 import com.github.paulpv.androidbletool.BleTool
-import com.github.paulpv.androidbletool.BleTool.BleToolScanObserver
 import com.github.paulpv.androidbletool.BleTool.BleToolDeviceScanObserver
+import com.github.paulpv.androidbletool.BleTool.BleToolScanObserver
 import com.github.paulpv.androidbletool.R
 import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseArray
 import com.github.paulpv.androidbletool.devices.Features
@@ -139,6 +140,10 @@ class MainActivity : AppCompatActivity(), BleToolDeviceScanObserver, BleToolScan
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
         val itemId = item!!.itemId
+        if (itemId == R.id.action_clear) {
+            devicesAdapter!!.clear()
+            return true
+        }
         if (itemId == R.id.action_sortby_address) {
             devicesAdapter!!.sortBy = SortBy.Address
             item.isChecked = true
@@ -164,8 +169,8 @@ class MainActivity : AppCompatActivity(), BleToolDeviceScanObserver, BleToolScan
             item.isChecked = true
             return true
         }
-        if (itemId == R.id.action_clear) {
-            devicesAdapter!!.clear()
+        if (itemId == R.id.action_ringtone) {
+            bleTool!!.selectRingtone(this, 100)
             return true
         }
         return super.onOptionsItemSelected(item)
@@ -173,6 +178,15 @@ class MainActivity : AppCompatActivity(), BleToolDeviceScanObserver, BleToolScan
 
     //
     //endregion Menu stuff...
+    //
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        bleTool!!.onActivityResult(requestCode, resultCode, data)
+    }
+
+    //
+    //
     //
 
     override fun onScanStarted(bleTool: BleTool) {

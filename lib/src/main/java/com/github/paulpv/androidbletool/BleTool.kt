@@ -7,6 +7,11 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.*
 import android.content.*
+import android.media.AudioAttributes
+import android.media.AudioManager
+import android.media.MediaPlayer
+import android.media.RingtoneManager
+import android.net.Uri
 import android.os.*
 import android.util.Log
 import androidx.annotation.RequiresApi
@@ -22,6 +27,7 @@ import com.github.paulpv.androidbletool.collections.ExpiringIterableLongSparseAr
 import com.github.paulpv.androidbletool.devices.Features
 import com.github.paulpv.androidbletool.exceptions.BleScanException
 import com.github.paulpv.androidbletool.gatt.GattManager
+import com.github.paulpv.androidbletool.utils.ActivityUtils
 import com.github.paulpv.androidbletool.utils.ReflectionUtils
 import com.github.paulpv.androidbletool.utils.Utils
 import com.github.paulpv.androidbletool.utils.Utils.TAG
@@ -1361,6 +1367,7 @@ class BleTool(
     //region device Feature listeners
     //
 
+    @Suppress("MemberVisibilityCanBePrivate")
     fun isAuthorized(device: BleDevice?): Boolean {
         return configuration.isAuthorized(device)
     }
@@ -1408,7 +1415,7 @@ class BleTool(
         }
     }
 
-    fun onFeatureSignalLevelRssiChanged(feature: Features.IFeatureSignalLevelRssi): Boolean {
+    fun onFeatureSignalLevelRssiChanged(@Suppress("UNUSED_PARAMETER") feature: Features.IFeatureSignalLevelRssi): Boolean {
         //Log.v(TAG, "onFeatureSignalLevelRssiChanged: RSSI CHANGED feature=$feature")
         return false
     }
@@ -1444,6 +1451,7 @@ class BleTool(
     private fun onFeatureShortClickChanged(feature: Features.IFeatureShortClick): Boolean {
         Log.i(TAG, "onFeatureShortClickChanged: SHORT CLICK CHANGED feature=$feature")
         if (feature.isShortClicked) {
+            ringtoneToggle()
         }
         return false
     }
@@ -1496,4 +1504,94 @@ class BleTool(
         recentlyNearbyDevicesUpdatedDebounce.remove(item)
         bleToolDeviceScanObservers.forEach { it.onDeviceRemoved(this, item) }
     }
+
+    //
+    //region Actions (candidate to move to dedicated class)
+    //
+
+    @Suppress("PrivatePropertyName")
+    private var REQUEST_CODE_SELECT_RINGTONE = -1
+
+    fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        when (requestCode) {
+            REQUEST_CODE_SELECT_RINGTONE -> {
+                REQUEST_CODE_SELECT_RINGTONE = -1
+                if (Activity.RESULT_OK == resultCode) {
+                    setRingtone(ActivityUtils.getSelectRingtoneActivityResult(data))
+                }
+            }
+        }
+    }
+
+    private fun getDefaultRingtone(): Uri {
+        return RingtoneManager.getActualDefaultRingtoneUri(application, RingtoneManager.TYPE_ALARM)
+    }
+
+    fun selectRingtone(activity: Activity, requestCode: Int, selectedRingtone: Uri = getRingtone()): Boolean {
+        REQUEST_CODE_SELECT_RINGTONE = requestCode
+        return ActivityUtils.startSelectRingtoneActivityForResult(activity, requestCode, selectedRingtone)
+    }
+
+    private var _ringtone = getDefaultRingtone()
+
+    private fun getRingtone(): Uri {
+        return _ringtone
+    }
+
+    private fun setRingtone(uri: Uri?) {
+        @Suppress("NAME_SHADOWING") var uri = uri
+        if (uri == null) {
+            uri = getDefaultRingtone()
+        }
+        _ringtone = uri
+    }
+
+    private var currentRingtoneMediaPlayer: MediaPlayer? = null
+
+    private fun ringtoneToggle() {
+        val currentRingtoneMediaPlayer = this.currentRingtoneMediaPlayer
+        this.currentRingtoneMediaPlayer = if (currentRingtoneMediaPlayer != null) {
+            mediaStop(currentRingtoneMediaPlayer)
+            null
+        } else {
+            playMedia(getRingtone())
+        }
+    }
+
+    private fun newAudioSessionId(): Int {
+        return (application.getSystemService(Context.AUDIO_SERVICE) as AudioManager).generateAudioSessionId()
+    }
+
+    private fun playMedia(uri: Uri): MediaPlayer {
+        val mediaPlayer = MediaPlayer()
+        val audioAttributes = AudioAttributes.Builder()
+            .setLegacyStreamType(AudioManager.STREAM_ALARM)
+            .build()
+        mediaPlayer.setAudioAttributes(audioAttributes)
+        mediaPlayer.audioSessionId = newAudioSessionId()
+        mediaPlayer.setDataSource(application, uri)
+        return mediaPlay(mediaPlayer)
+    }
+
+    private var currentMediaPlayer: MediaPlayer? = null
+
+    private fun mediaPlay(mediaPlayer: MediaPlayer): MediaPlayer {
+        var currentMediaPlayer = currentMediaPlayer
+        if (currentMediaPlayer != null) {
+            mediaStop(currentMediaPlayer)
+        }
+        mediaPlayer.prepare()
+        mediaPlayer.start()
+        currentMediaPlayer = mediaPlayer
+        return currentMediaPlayer
+    }
+
+    private fun mediaStop(mediaPlayer: MediaPlayer) {
+        mediaPlayer.stop()
+        mediaPlayer.release()
+    }
+
+    //
+    //endregion Actions
+    //
 }
