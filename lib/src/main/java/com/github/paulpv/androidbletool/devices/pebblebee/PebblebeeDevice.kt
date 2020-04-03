@@ -17,8 +17,6 @@ open class PebblebeeDevice(
         private val DEBUG_LOG_UPDATE = false && BuildConfig.DEBUG
     }
 
-    interface IPebblebeeDeviceListener : Features.IFeatureSignalLevelRssiListener
-
     private val featureSignalLevelRssi = Features.FeatureSignalLevelRssi(this)
 
     override fun toString(): String {
@@ -38,17 +36,11 @@ open class PebblebeeDevice(
         return toString(this, sb.toString())
     }
 
-    //
-    //
-    //
-
-    fun addListener(listener: IPebblebeeDeviceListener) {
-        addListener(listener as Features.IFeatureSignalLevelRssiListener)
+    override fun reset() {
+        super.reset()
+        featureSignalLevelRssi.reset()
     }
 
-    fun removeListener(listener: IPebblebeeDeviceListener) {
-        removeListener(listener as Features.IFeatureSignalLevelRssiListener)
-    }
 
     //
     //region IFeature

@@ -17,12 +17,18 @@ open class BleDeviceFactory<T : BleDevice> {
     }
 
     fun close() {
-        val it = deviceCache.iterateValues()
-        while (it.hasNext()) {
-            it.next().gattHandler.disconnect()
-            it.remove()
-        }
+        clear()
         gattManager.close()
+    }
+
+    fun clear() {
+        synchronized(deviceCache) {
+            val it = deviceCache.iterateValues()
+            while (it.hasNext()) {
+                it.next().gattHandler.disconnect()
+                it.remove()
+            }
+        }
     }
 
     fun getDevice(bluetoothDevice: BluetoothDevice): T {

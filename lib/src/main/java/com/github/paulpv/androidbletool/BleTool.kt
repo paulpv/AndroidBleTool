@@ -229,7 +229,6 @@ class BleTool(
     }
 
     private abstract class ExplicitBroadcastReceiver(TAG: String, private val context: Context) : BroadcastReceiver() {
-
         @Suppress("PrivatePropertyName")
         private val TAG = TAG(TAG)
 
@@ -415,18 +414,18 @@ class BleTool(
     private var persistentScanningStartedMillis: Long
         get() {
             @Suppress("UnnecessaryVariable")
-            val value = sharedPreferences!!.getLong(PREF_PERSISTENT_SCANNING_STARTED_MILLIS, PERSISTENT_SCANNING_STARTED_MILLIS_UNDEFINED)
+            val value = sharedPreferences.getLong(PREF_PERSISTENT_SCANNING_STARTED_MILLIS, PERSISTENT_SCANNING_STARTED_MILLIS_UNDEFINED)
             //Log.e(TAG, "persistentScanningStartedMillis=$value")
             return value
         }
-        private set(value) = sharedPreferences!!.edit(commit = true) { putLong(PREF_PERSISTENT_SCANNING_STARTED_MILLIS, value) }
+        private set(value) = sharedPreferences.edit(commit = true) { putLong(PREF_PERSISTENT_SCANNING_STARTED_MILLIS, value) }
 
     @Suppress("PrivatePropertyName")
     private val PERSISTENT_SCANNING_BACKGROUND_PID_UNDEFINED = 0
     private var persistentScanningBackgroundPid: Int
         get() {
             @Suppress("UnnecessaryVariable")
-            val value = sharedPreferences!!.getInt(PREF_PERSISTENT_SCANNING_BACKGROUND_PID, PERSISTENT_SCANNING_BACKGROUND_PID_UNDEFINED)
+            val value = sharedPreferences.getInt(PREF_PERSISTENT_SCANNING_BACKGROUND_PID, PERSISTENT_SCANNING_BACKGROUND_PID_UNDEFINED)
             @Suppress("SimplifyBooleanWithConstants")
             if (false && BuildConfig.DEBUG) {
                 Log.e(TAG, "#PID get persistentScanningBackgroundPid=$value")
@@ -438,7 +437,7 @@ class BleTool(
             if (false && BuildConfig.DEBUG) {
                 Log.e(TAG, "#PID set persistentScanningBackgroundPid=$value")
             }
-            sharedPreferences!!.edit(commit = true) { putInt(PREF_PERSISTENT_SCANNING_BACKGROUND_PID, value) }
+            sharedPreferences.edit(commit = true) { putInt(PREF_PERSISTENT_SCANNING_BACKGROUND_PID, value) }
         }
 
     private fun persistentScanningReset() {
@@ -899,6 +898,11 @@ class BleTool(
     @Suppress("PropertyName", "PrivatePropertyName")
     private val PERMISSIONS = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
 
+    private fun clearDevices() {
+        recentlyNearbyDevices.clear()
+        deviceFactory.clear()
+    }
+
     /*
      * Checks for Permissions and then calls persistentScanningResume(...)
      */
@@ -910,7 +914,7 @@ class BleTool(
             //
             // NOTE:(pv) This usually fires **BEFORE** any attached activity resumes
             //
-            recentlyNearbyDevices.clear()
+            clearDevices()
             val result = persistentScanningResume("persistentScanningStart", false)
             if (result == null) {
                 persistentScanningStartedMillis = SystemClock.uptimeMillis()
@@ -1451,6 +1455,7 @@ class BleTool(
     private fun onFeatureShortClickChanged(feature: Features.IFeatureShortClick): Boolean {
         Log.i(TAG, "onFeatureShortClickChanged: SHORT CLICK CHANGED feature=$feature")
         if (feature.isShortClicked) {
+            Log.i(TAG, "onFeatureShortClickChanged: SHORT CLICKED; ringtoneToggle()")
             ringtoneToggle()
         }
         return false
@@ -1499,8 +1504,10 @@ class BleTool(
         // @formatter:off
         Log.i(TAG, "${Utils.getTimeDurationFormattedString(persistentScanningElapsedMillis)} $macAddressString onDeviceRemoved: REMOVED! bleScanResult=$bleScanResult")
         // @formatter:on
+
         val device = deviceFactory.getDevice(macAddressString)
         removeListeners(device)
+
         recentlyNearbyDevicesUpdatedDebounce.remove(item)
         bleToolDeviceScanObservers.forEach { it.onDeviceRemoved(this, item) }
     }
@@ -1517,7 +1524,7 @@ class BleTool(
             REQUEST_CODE_SELECT_RINGTONE -> {
                 REQUEST_CODE_SELECT_RINGTONE = -1
                 if (Activity.RESULT_OK == resultCode) {
-                    setRingtone(ActivityUtils.getSelectRingtoneActivityResult(data))
+                    ringtone = ActivityUtils.getSelectRingtoneActivityResult(data) ?: getDefaultRingtone()
                 }
             }
         }
@@ -1527,24 +1534,22 @@ class BleTool(
         return RingtoneManager.getActualDefaultRingtoneUri(application, RingtoneManager.TYPE_ALARM)
     }
 
-    fun selectRingtone(activity: Activity, requestCode: Int, selectedRingtone: Uri = getRingtone()): Boolean {
+    fun selectRingtone(activity: Activity, requestCode: Int, selectedRingtone: Uri = ringtone): Boolean {
         REQUEST_CODE_SELECT_RINGTONE = requestCode
         return ActivityUtils.startSelectRingtoneActivityForResult(activity, requestCode, selectedRingtone)
     }
 
-    private var _ringtone = getDefaultRingtone()
+    @Suppress("PrivatePropertyName")
+    private val PREF_RINGTONE = "ringtone"
 
-    private fun getRingtone(): Uri {
-        return _ringtone
-    }
-
-    private fun setRingtone(uri: Uri?) {
-        @Suppress("NAME_SHADOWING") var uri = uri
-        if (uri == null) {
-            uri = getDefaultRingtone()
+    private var ringtone: Uri
+        get() {
+            val ringtone = sharedPreferences.getString(PREF_RINGTONE, null)
+            return if (ringtone != null) Uri.parse(ringtone) else getDefaultRingtone()
         }
-        _ringtone = uri
-    }
+        private set(value) {
+            sharedPreferences.edit(commit = true) { putString(PREF_RINGTONE, value.toString()) }
+        }
 
     private var currentRingtoneMediaPlayer: MediaPlayer? = null
 

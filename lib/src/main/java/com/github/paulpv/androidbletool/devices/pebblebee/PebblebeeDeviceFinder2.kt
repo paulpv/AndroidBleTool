@@ -38,20 +38,15 @@ class PebblebeeDeviceFinder2(gattHandler: GattHandler) :
         const val PEBBLEBEE_DEVICE_MODEL_NUMBER = Pebblebee.DeviceModelNumber.FINDER2_0
     }
 
-    interface IFinder2Listener : IPebblebeeDeviceListener, Features.IFeatureBeepListener
-
     private val featureShortClick = Features.FeatureShortClick(this, handler, CLICK_TIMEOUT_MILLIS)
     private val featureBeep = Features.FeatureBeep(this, this)
     private val featureFlash = Features.FeatureFlash(this, this)
 
-    fun addListener(listener: IFinder2Listener) {
-        addListener(listener as IPebblebeeDeviceListener)
-        addListener(listener as Features.IFeatureBeepListener)
-    }
-
-    fun removeListener(listener: IFinder2Listener) {
-        removeListener(listener as IPebblebeeDeviceListener)
-        removeListener(listener as Features.IFeatureBeepListener)
+    override fun reset() {
+        super.reset()
+        featureShortClick.reset()
+        featureBeep.reset()
+        featureFlash.reset()
     }
 
     override fun update(trigger: Trigger<*>): Boolean {

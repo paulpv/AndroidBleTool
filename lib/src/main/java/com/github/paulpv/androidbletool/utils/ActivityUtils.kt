@@ -17,10 +17,12 @@ import com.github.paulpv.androidbletool.utils.Utils.TAG
 object ActivityUtils {
     private val TAG = TAG(ActivityUtils.javaClass)
 
+    @Suppress("MemberVisibilityCanBePrivate")
     fun resolveActivity(context: Context, intent: Intent): ComponentName? {
-        return intent.resolveActivity(context.getPackageManager())
+        return intent.resolveActivity(context.packageManager)
     }
 
+    @Suppress("MemberVisibilityCanBePrivate")
     fun startActivityForResult(activity: Activity, intent: Intent, requestCode: Int, options: Bundle?): ComponentName? {
         var componentName: ComponentName? = resolveActivity(activity, intent)
         if (componentName != null) {
@@ -42,6 +44,7 @@ object ActivityUtils {
         return componentName
     }
 
+    @Suppress("MemberVisibilityCanBePrivate", "unused")
     fun startActivityForResult(fragment: Fragment, intent: Intent, requestCode: Int, options: Bundle?): ComponentName? {
         var componentName: ComponentName? = null
         val activity: Activity? = fragment.activity
@@ -67,6 +70,7 @@ object ActivityUtils {
         return componentName
     }
 
+    @Suppress("MemberVisibilityCanBePrivate")
     fun getSelectRingtoneIntent(context: Context, selectedRingtone: Uri?): Intent {
         val title: String = context.getString(R.string.select_ringtone)
         val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER)
@@ -80,11 +84,13 @@ object ActivityUtils {
         return intent
     }
 
+    @Suppress("MemberVisibilityCanBePrivate")
     fun startSelectRingtoneActivityForResult(activity: Activity, requestCode: Int, selectedRingtone: Uri?): Boolean {
         val intent = getSelectRingtoneIntent(activity, selectedRingtone)
         return startActivityForResult(activity, intent, requestCode, null) != null
     }
 
+    @Suppress("MemberVisibilityCanBePrivate")
     fun getSelectRingtoneActivityResult(data: Intent?): Uri? {
         return data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
     }

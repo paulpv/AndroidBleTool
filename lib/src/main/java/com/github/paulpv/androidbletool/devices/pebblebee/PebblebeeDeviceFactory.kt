@@ -39,8 +39,11 @@ class PebblebeeDeviceFactory : BleDeviceFactory<PebblebeeDevice>() {
             if (device != null) return device
             val gattHandler = gattManager.getGattHandler(macAddress)
             device = when (pebblebeeDeviceModelNumber) {
+                Pebblebee.DeviceModelNumber.FINDER1_0 -> {
+                    PebblebeeDeviceFinder1(gattHandler = gattHandler)
+                }
                 Pebblebee.DeviceModelNumber.FINDER2_0 -> {
-                    PebblebeeDeviceFinder2(gattHandler)
+                    PebblebeeDeviceFinder2(gattHandler = gattHandler)
                 }
                 else -> {
                     null

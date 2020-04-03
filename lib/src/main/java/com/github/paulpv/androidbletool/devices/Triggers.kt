@@ -1,5 +1,6 @@
 package com.github.paulpv.androidbletool.devices
 
+import com.github.paulpv.androidbletool.devices.pebblebee.Pebblebee.ActionSequence
 import com.github.paulpv.androidbletool.utils.ReflectionUtils.instanceName
 
 object Triggers {
@@ -8,23 +9,21 @@ object Triggers {
         val value: T
     ) {
         companion object {
-            fun toString(trigger: Trigger<*>, value: String? = null, suffix: String? = null): String {
-                var s = "${instanceName(this)}{ value="
-                if (value != null) {
-                    s += value
-                } else {
-                    s += "${trigger.value}"
-                }
-                s += ", isImmediate=${trigger.isImmediate}, isChanged=${trigger.isChanged}"
-                if (suffix != null) {
-                    s += suffix
-                }
-                return "$s }"
+            fun toString(trigger: Trigger<*>, valueFieldString: String, nonValueFieldsString: String): String {
+                return "${instanceName(trigger)}{ value=$valueFieldString, $nonValueFieldsString }"
             }
         }
 
-        override fun toString(): String {
-            return toString(this)
+        protected open fun getValueString(): String {
+            return "value=$value"
+        }
+
+        protected open fun getFieldsString(): String {
+            return "isImmediate=$isImmediate, isChanged=$isChanged"
+        }
+
+        final override fun toString(): String {
+            return toString(this, getValueString(), getFieldsString())
         }
 
         var isChanged = false
@@ -57,16 +56,18 @@ object Triggers {
             }
         }
 
-        override fun toString(): String {
-            return toString(this, value = AdvertisementSpeed.toString(value))
+        override fun getValueString(): String {
+            return AdvertisementSpeed.toString(value)
         }
     }
 
     class TriggerBeepingAndFlashing(isBeepingAndFlashing: Boolean) : Trigger<Boolean>(true, isBeepingAndFlashing)
 
     abstract class TriggerClick(isClicked: Boolean, val sequence: Byte = -1, val counter: Byte = -1) : Trigger<Boolean>(true, isClicked) {
-        override fun toString(): String {
-            return toString(this, suffix = ", sequence=$sequence, counter=$counter")
+        override fun getFieldsString(): String {
+            return super.getFieldsString() +
+                    ", sequence=${ActionSequence.toString(sequence)}" +
+                    ", counter=$counter"
         }
     }
 

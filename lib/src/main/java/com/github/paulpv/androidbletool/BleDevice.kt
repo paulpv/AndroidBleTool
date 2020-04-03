@@ -44,6 +44,9 @@ open class BleDevice(val gattHandler: GattHandler, looper: Looper? = null) {
         return toString(this)
     }
 
+    open fun reset() {
+    }
+
     protected open fun handleMessage(msg: Message?): Boolean {
         return false
     }

@@ -3,6 +3,7 @@ package com.github.paulpv.androidbletool.devices
 import android.util.Log
 import com.github.paulpv.androidbletool.BleDevice
 import com.github.paulpv.androidbletool.BuildConfig
+import com.github.paulpv.androidbletool.logging.MyLog
 import com.github.paulpv.androidbletool.math.LowPassFilter
 import com.github.paulpv.androidbletool.utils.MyHandler
 import com.github.paulpv.androidbletool.utils.ReflectionUtils.instanceName
@@ -18,21 +19,21 @@ object Features {
 
     abstract class Feature(override val device: BleDevice) : IFeature {
         companion object {
-            fun toString(feature: Feature, suffix: String? = null): String {
-                // device.toString() calls feature.toString() for each feature; prevent recursion...
-                val device = feature.device
-                val deviceString = "${instanceName(device)}{ macAddressString=${device.macAddressString}, ... }"
-                var s = "${instanceName(feature)}{ device=${deviceString}"
-                if (suffix != null) {
-                    s += suffix
-                }
-                return "$s }"
-
+            fun toString(feature: Feature, fieldsString: String): String {
+                return "${instanceName(feature)}{ $fieldsString }"
             }
         }
 
-        override fun toString(): String {
-            return toString(this)
+        protected open fun getFieldsString(): String {
+            //
+            // device.toString() calls feature.toString() for each feature.
+            // This "..." logic prevents infinite recursion between device and features.
+            //
+            return "device=${instanceName(device)}{ macAddressString=${device.macAddressString}, ... }"
+        }
+
+        final override fun toString(): String {
+            return toString(this, getFieldsString())
         }
 
         abstract fun reset()
@@ -91,6 +92,7 @@ object Features {
 
             const val SIGNAL_LEVEL_RSSI_UNDEFINED = -1
 
+            @Suppress("unused")
             fun isUndefined(rssi: Int): Boolean {
                 return rssi == SIGNAL_LEVEL_RSSI_UNDEFINED
             }
@@ -105,15 +107,13 @@ object Features {
         private var signalLevelRssiSmoothedCurrent = SIGNAL_LEVEL_RSSI_UNDEFINED
         private var signalLevelRssiSmoothedPrevious = SIGNAL_LEVEL_RSSI_UNDEFINED
 
-        override fun toString(): String {
-            return toString(
-                this,
-                ", signalLevelRssiRealtimeCurrent=$signalLevelRssiRealtimeCurrent" +
-                        ", signalLevelRssiRealtimePrevious=$signalLevelRssiRealtimePrevious" +
-                        ", signalLevelRssiSmoothedCurrent=$signalLevelRssiSmoothedCurrent" +
-                        ", signalLevelRssiSmoothedPrevious=$signalLevelRssiSmoothedPrevious" +
-                        ", listeners.size=${listeners.size}"
-            )
+        override fun getFieldsString(): String {
+            return super.getFieldsString() +
+                    ", signalLevelRssiRealtimeCurrent=$signalLevelRssiRealtimeCurrent" +
+                    ", signalLevelRssiRealtimePrevious=$signalLevelRssiRealtimePrevious" +
+                    ", signalLevelRssiSmoothedCurrent=$signalLevelRssiSmoothedCurrent" +
+                    ", signalLevelRssiSmoothedPrevious=$signalLevelRssiSmoothedPrevious" +
+                    ", listeners.size=${listeners.size}"
         }
 
         init {
@@ -144,6 +144,7 @@ object Features {
             signalLevelRssiSmoothedPrevious = SIGNAL_LEVEL_RSSI_UNDEFINED
         }
 
+        @Suppress("MemberVisibilityCanBePrivate")
         fun setSignalLevelRssi(rssi: Int): Boolean {
             val triggerSignalLevelRssi = Triggers.TriggerSignalLevelRssi(rssi)
             return setSignalLevelRssi(triggerSignalLevelRssi)
@@ -175,6 +176,7 @@ object Features {
             if (VERBOSE_LOG) {
                 Log.e(TAG, "setSignalLevelRssi: signalLevelRssiSmoothedPrevious=$signalLevelRssiSmoothedPrevious")
             }
+            @Suppress("SimplifyBooleanWithConstants")
             changed = if (false && BuildConfig.DEBUG) {
                 // NOTE:(pv) In debug mode we want to see the realtime RSSI values
                 changed or (signalLevelRssiSmoothedPrevious != rssi)
@@ -235,8 +237,10 @@ object Features {
     class FeatureBeep(device: BleDevice, private val configuration: IFeatureBeepConfiguration) : Feature(device), IFeatureBeep {
         private val listeners = mutableSetOf<IFeatureBeepListener>()
 
-        override fun toString(): String {
-            return toString(this, ", isBeeping=$isBeeping, listeners.size=${listeners.size}")
+        override fun getFieldsString(): String {
+            return super.getFieldsString() +
+                    ", isBeeping=$isBeeping" +
+                    ", listeners.size=${listeners.size}"
         }
 
         init {
@@ -310,8 +314,10 @@ object Features {
     class FeatureFlash(device: BleDevice, private val configuration: IFeatureFlashConfiguration) : Feature(device), IFeatureFlash {
         private val listeners = mutableSetOf<IFeatureFlashListener>()
 
-        override fun toString(): String {
-            return toString(this, ", isFlashing=$isFlashing, listeners.size=${listeners.size}")
+        override fun getFieldsString(): String {
+            return super.getFieldsString() +
+                    ", isFlashing=$isFlashing" +
+                    ", listeners.size=${listeners.size}"
         }
 
         init {
@@ -392,7 +398,7 @@ object Features {
         private var counter: Byte = 0
 
         override fun toString(): String {
-            return toString(this, "isShortClicked=$isShortClicked, sequence=$sequence, counter=$counter, listeners.size=${listeners.size}")
+            return toString(this, ", isShortClicked=$isShortClicked, sequence=$sequence, counter=$counter, listeners.size=${listeners.size}")
         }
 
         init {
@@ -418,9 +424,13 @@ object Features {
         }
 
         override fun reset() {
+            if (LOG_VERBOSE) {
+                Log.e(TAG, "#CLICK reset()")
+            }
             setIsShortClicked(false)
         }
 
+        @Suppress("MemberVisibilityCanBePrivate")
         fun setIsShortClicked(isShortClicked: Boolean): Boolean {
             val triggerShortClick = Triggers.TriggerShortClick(isShortClicked)
             return setIsShortClicked(triggerShortClick)
@@ -428,16 +438,18 @@ object Features {
 
         fun setIsShortClicked(trigger: Triggers.TriggerShortClick): Boolean {
             if (LOG_VERBOSE) {
-                Log.e(TAG, "#CLICK setIsShortClicked this=$this")
+                Log.v(TAG, "#CLICK setIsShortClicked trigger=$trigger")
+                Log.v(TAG, "#CLICK setIsShortClicked this=$this")
             }
             val isShortClicked: Boolean = trigger.value
             val sequence = trigger.sequence
             val counter = trigger.counter
 
-            //boolean changed = mIsShortClicked != isShortClicked || mCounter != counter;// || mSequence != sequence;
-            val changed = this.isShortClicked != isShortClicked // || mSequence != sequence;
+            //boolean changed = this.isShortClicked != isShortClicked || this.counter != counter// || this.sequence != sequence
+            val changed = this.isShortClicked != isShortClicked // || this.sequence != sequence
             if (LOG_VERBOSE) {
-                Log.e(TAG, "#CLICK setIsShortClicked isShortClicked=$isShortClicked, sequence=$sequence, counter=$counter, changed=$changed")
+                val level = if (changed) Log.ERROR else Log.VERBOSE
+                MyLog.println(TAG, level, "#CLICK setIsShortClicked changed=$changed")
             }
             trigger.isChanged = changed
             this.isShortClicked = isShortClicked

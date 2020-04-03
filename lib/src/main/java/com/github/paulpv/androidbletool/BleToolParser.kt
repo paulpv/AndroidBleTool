@@ -251,7 +251,7 @@ class BleToolParser(
             if (logVerbose) {
                 Log.e(TAG, "$debugInfo: serviceUuids=$serviceUuids")
                 Log.e(TAG, "$debugInfo:  serviceData=$serviceData")
-                logManufacturerSpecificData(Log.ERROR, TAG, debugInfo, manufacturerSpecificData)
+                logManufacturerSpecificData(Log.DEBUG, TAG, debugInfo, manufacturerSpecificData)
             }
 
             if (!parser.parseScan(scanRecord, bluetoothDevice, serviceUuids, manufacturerId, manufacturerSpecificDataByteBuffer, triggers)) {
